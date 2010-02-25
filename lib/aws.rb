@@ -42,10 +42,9 @@ module Happening
       s3_attributes['date'] = '' if s3_attributes.has_key?('x-amz-date')
       s3_attributes['date'] = expires if expires
 
-        # prepare output string
       description = "#{method}\n"
       s3_attributes.sort { |a, b| a[0] <=> b[0] }.each do |key, value|
-        description << (key[/^#{AMAZON_HEADER_PREFIX}/o] ? "#{key}:#{value}\n" : "#{value}\n")
+        description << (key.match(/^#{AMAZON_HEADER_PREFIX}/o) ? "#{key}:#{value}\n" : "#{value}\n")
       end
       
       # ignore all parameters by default
