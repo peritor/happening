@@ -25,10 +25,7 @@ module Happening
   protected
         
     def generate_signature(request_description)
-      puts "Generating a signature for #{request_description.inspect}"
-      res = Base64.encode64(OpenSSL::HMAC.digest(DIGEST, aws_secret_access_key, request_description)).strip
-      puts "Generated: #{res}"
-      res
+      Base64.encode64(OpenSSL::HMAC.digest(DIGEST, aws_secret_access_key, request_description)).strip
     end
     
     def canonical_request_description(method, path, headers = {}, expires = nil)
