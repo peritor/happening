@@ -155,6 +155,29 @@ class ItemTest < Test::Unit::TestCase
         end
       end
       
+      should "set the desired permissions" do
+       EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+         "Authorization"=>"AWS abc:cqkfX+nC7WIkYD+yWaUFuoRuePA=", 
+         'date' => @time, 
+         'url' => "/bucket/the-key",
+         "x-amz-acl" => 'public-read'}, fake_response("data-here"))
+
+        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123' , :permissions => 'public-read')
+        run_in_em_loop do
+          @item.put('content')
+
+          EM.add_timer(1) {
+            EM.stop_event_loop
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+              "Authorization"=>"AWS abc:cqkfX+nC7WIkYD+yWaUFuoRuePA=", 
+              'date' => @time, 
+              'url' => "/bucket/the-key",
+              'x-amz-acl' => 'public-read'})
+          }
+
+        end
+      end
+      
       should "re-post to a new location" do
         EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :put, {
           "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 

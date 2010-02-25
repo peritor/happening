@@ -18,9 +18,10 @@ module Happening
           :protocol => 'https',
           :aws_access_key_id => nil,
           :aws_secret_access_key => nil,
-          :retry_count => 4
+          :retry_count => 4,
+          :permissions => 'private'
         }.update(options.symbolize_keys)
-        options.assert_valid_keys(:timeout, :on_success, :on_error, :server, :protocol, :aws_access_key_id, :aws_secret_access_key, :retry_count)
+        options.assert_valid_keys(:timeout, :on_success, :on_error, :server, :protocol, :aws_access_key_id, :aws_secret_access_key, :retry_count, :permissions)
         @aws_id = aws_id.to_s
         @bucket = bucket.to_s
       
@@ -38,7 +39,8 @@ module Happening
       end
       
       def put(data)
-        headers = needs_to_sign? ? aws.sign("PUT", path, {'url' => path}) : {}
+        permissions = options[:permissions] != 'private' ? {'x-amz-acl' => options[:permissions] } : {}
+        headers = needs_to_sign? ? aws.sign("PUT", path, permissions.update({'url' => path})) : {}
         http = http_class.new(url).put(:timeout => options[:timeout], :head => headers, :body => data)
 
         http.errback { error_callback(http) }
