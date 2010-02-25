@@ -17,9 +17,10 @@ module Happening
           :server => 's3.amazonaws.com',
           :protocol => 'https',
           :aws_access_key_id => nil,
-          :aws_secret_access_key => nil
+          :aws_secret_access_key => nil,
+          :retry_count => 4
         }.update(options.symbolize_keys)
-        options.assert_valid_keys(:timeout, :on_success, :on_error, :server, :protocol, :aws_access_key_id, :aws_secret_access_key)
+        options.assert_valid_keys(:timeout, :on_success, :on_error, :server, :protocol, :aws_access_key_id, :aws_secret_access_key, :retry_count)
         @aws_id = aws_id.to_s
         @bucket = bucket.to_s
       
@@ -27,19 +28,22 @@ module Happening
       end
     
       def get
-        puts "Starting EM-HTTP request to #{url}"
-        
         headers = needs_to_sign? ? aws.sign("GET", path) : {}
-        
+      
         http = http_class.new(url).get(:timeout => options[:timeout], :head => headers)
 
-        http.errback { 
-          options[:on_error].call(http) if options[:on_error].respond_to?(:call)
-        }
+        http.errback { error_callback(http) }
+        http.callback { success_callback(http) }
+        nil
+      end
+      
+      def put(data)
+        headers = needs_to_sign? ? aws.sign("PUT", path, {'url' => path}) : {}
+        http = http_class.new(url).put(:timeout => options[:timeout], :head => headers, :body => data)
 
-        http.callback {
-          options[:on_success].call(http) if options[:on_success].respond_to?(:call)
-        }
+        http.errback { error_callback(http) }
+        http.callback { success_callback(http, data) }
+        nil
       end
     
       def url
@@ -59,6 +63,59 @@ module Happening
       end
     
     protected
+    
+      def error_callback(http)
+        options[:on_error].call(http) if options[:on_error].respond_to?(:call)
+      end
+    
+      def success_callback(http, data=nil)
+        case http.response_header.status
+        when 0, 400, 401, 404, 403, 409, 411, 412, 416, 500, 503
+          puts "retrying after: status #{http.response_header.status rescue ''}"
+          handle_retry(data)
+        when 300, 301, 303, 304, 307
+          puts "being redirected_to: #{http.response_header['LOCATION'] rescue ''}"
+          handle_redirect(http.response_header['LOCATION'], data)
+        else
+          options[:on_success].call(http) if options[:on_success].respond_to?(:call)
+        end
+      end
+      
+      def handle_retry(data)
+        if options[:retry_count] > 0
+          if data
+            self.class.new(bucket, aws_id, options.update(:retry_count => options[:retry_count] - 1 )).put(data)
+          else
+            self.class.new(bucket, aws_id, options.update(:retry_count => options[:retry_count] - 1 )).get
+          end
+        else
+          puts "Re-tried too often - giving up"
+        end
+      end
+    
+      def handle_redirect(location, data)
+        new_server, new_path = extract_location(location)
+
+        if data
+          self.class.new(bucket, aws_id, options.update(:server => new_server)).put(data)
+        else
+          self.class.new(bucket, aws_id, options.update(:server => new_server)).get
+        end
+      end
+    
+      def extract_location(location)
+        uri = URI.parse(location)
+        if match = uri.host.match(/\A#{bucket}\.(.*)/)
+          server = match[1]
+          path = uri.path
+        elsif match = uri.path.match(/\A\/#{bucket}\/(.*)/)
+          server = uri.host
+          path = match[1]
+        else
+          raise "being redirected to an not understood place: #{location}"
+        end
+        return server, path.sub(/^\//, '')
+      end
     
       def needs_to_sign?
         options[:aws_access_key_id].present?

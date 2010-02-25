@@ -94,12 +94,118 @@ class ItemTest < Test::Unit::TestCase
           
         end
       end
+      
+      should "retry on error" do
+        EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :get, {}, error_response(400))
+
+        @item = Happening::S3::Item.new('bucket', 'the-key')
+        run_in_em_loop do
+          @item.get
+
+          EM.add_timer(1) {
+            EM.stop_event_loop
+            assert_equal 5, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :get, {})
+          }
+
+        end
+      end
+      
+      should "handle re-direct" do
+        EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :get, {}, redirect_response('https://bucket.s3-external-3.amazonaws.com/the-key'))
+        EventMachine::MockHttpRequest.register('https://bucket.s3-external-3.amazonaws.com:443/the-key', :get, {}, fake_response('hy there'))
+
+        @item = Happening::S3::Item.new('bucket', 'the-key')
+        run_in_em_loop do
+          @item.get
+
+          EM.add_timer(1) {
+            EM.stop_event_loop
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :get, {})
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3-external-3.amazonaws.com:443/the-key', :get, {})
+          }
+
+        end
+      end
     end
     
     context "when saving an item" do
-      should "post to the desired location" do
-        raise 'implement'
+      setup do
+        @time = "Thu, 25 Feb 2010 10:00:00 GMT"
+        Time.stubs(:now).returns(stub(:httpdate => @time, :to_i => 99, :usec => 88))
       end
+      
+      should "post to the desired location" do
+       EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+         "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 
+         'date' => @time, 
+         'url' => "/bucket/the-key"}, fake_response("data-here"))
+
+        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
+        run_in_em_loop do
+          @item.put('content')
+
+          EM.add_timer(1) {
+            EM.stop_event_loop
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+              "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 
+              'date' => @time, 
+              'url' => "/bucket/the-key"})
+          }
+
+        end
+      end
+      
+      should "re-post to a new location" do
+        EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+          "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 
+          'date' => @time, 
+          'url' => "/bucket/the-key"}, redirect_response('https://bucket.s3-external-3.amazonaws.com/the-key'))
+        EventMachine::MockHttpRequest.register('https://bucket.s3-external-3.amazonaws.com:443/the-key', :put, {
+          "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 
+          'date' => @time, 
+          'url' => "/bucket/the-key"}, fake_response('Thanks!')) 
+
+        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
+        run_in_em_loop do
+          @item.put('content')
+
+          EM.add_timer(1) {
+            EM.stop_event_loop
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+              "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 
+              'date' => @time, 
+              'url' => "/bucket/the-key"})
+            
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3-external-3.amazonaws.com:443/the-key', :put, {
+              "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 
+              'date' => @time, 
+              'url' => "/bucket/the-key"})
+          }
+
+        end
+      end
+      
+      should "retry on error" do
+       EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+         "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 
+         'date' => @time, 
+         'url' => "/bucket/the-key"}, error_response(400))
+
+        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
+        run_in_em_loop do
+          @item.put('content')
+
+          EM.add_timer(1) {
+            EM.stop_event_loop
+            assert_equal 5, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+              "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 
+              'date' => @time,
+              'url' => "/bucket/the-key"})
+          }
+
+        end
+      end
+      
     end
     
   end

@@ -57,7 +57,34 @@ Via: 1.0 .:80 (squid)
 Connection: close
 
 #{data}
+HEREDOC
+end
+
+# amazon tells us to upload to another location, e.g. happening-benchmark.s3-external-3.amazonaws.com instead of happening-benchmark.s3.amazonaws.com
+def redirect_response(location)
+    <<-HEREDOC
+HTTP/1.0 301 Moved Permanently
+Date: Mon, 16 Nov 2009 20:39:15 GMT
+Expires: -1
+Cache-Control: private, max-age=0
+Content-Type: text/html; charset=ISO-8859-1
+Via: 1.0 .:80 (squid)
+Connection: close
+Location: #{location}
+
+<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Error><Code>TemporaryRedirect</Code><Message>Please re-send this request to the specified temporary endpoint. Continue to use the original request endpoint for future requests.</Message><RequestId>137D5486D66095AE</RequestId><Bucket>happening-benchmark</Bucket><HostId>Nyk+Zq9GbtxcspdbKDWyGhsZhyUZquZP55tteYef4QVodsn73HUUad0xrIeD09lF</HostId><Endpoint>#{location}</Endpoint></Error>
   HEREDOC
+end
+
+def error_response(error_code)
+  <<-HEREDOC
+HTTP/1.0 #{error_code} OK
+Date: Mon, 16 Nov 2009 20:39:15 GMT
+Content-Type: text/html; charset=ISO-8859-1
+Connection: close
+
+<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Error><Code>TemporaryRedirect</Code><Message>Please re-send this request to the specified temporary endpoint. Continue to use the original request endpoint for future requests.</Message><RequestId>137D5486D66095AE</RequestId><Bucket>happening-benchmark</Bucket><HostId>Nyk+Zq9GbtxcspdbKDWyGhsZhyUZquZP55tteYef4QVodsn73HUUad0xrIeD09lF</HostId><Endpoint>https://s3.amazonaws.com</Endpoint></Error>
+HEREDOC
 end
 
 module EventMachine
