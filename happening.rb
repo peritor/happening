@@ -1,6 +1,6 @@
 require 'rubygems'
 require 'em-http'
-require 'right_aws'
+require 'openssl'
 require 'active_support'
 
 require File.dirname(__FILE__) + '/lib/aws'

@@ -23,11 +23,7 @@ module Happening
     end
     
   protected
-    
-    def interface
-      @instance ||= RightAws::S3Interface.new(aws_access_key_id, aws_secret_access_key, :logger => Logger.new('/dev/null'))
-    end
-    
+        
     def generate_signature(request_description)
       puts "Generating a signature for #{request_description.inspect}"
       res = Base64.encode64(OpenSSL::HMAC.digest(DIGEST, aws_secret_access_key, request_description)).strip
