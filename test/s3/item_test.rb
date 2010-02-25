@@ -206,6 +206,31 @@ class ItemTest < Test::Unit::TestCase
         end
       end
       
+      should "call error handler after retry reached" do
+       EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+         "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 
+         'date' => @time, 
+         'url' => "/bucket/the-key"}, error_response(400))
+
+       called = false
+       on_error = Proc.new {|http| called = true}
+
+        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123', :retry_count => 1, :on_error => on_error)
+        run_in_em_loop do
+          @item.put('content')
+
+          EM.add_timer(1) {
+            EM.stop_event_loop
+            assert called
+            assert_equal 2, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+              "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 
+              'date' => @time,
+              'url' => "/bucket/the-key"})
+          }
+
+        end
+      end
+      
     end
     
   end

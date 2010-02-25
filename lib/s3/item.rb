@@ -65,24 +65,40 @@ module Happening
     protected
     
       def error_callback(http)
-        options[:on_error].call(http) if options[:on_error].respond_to?(:call)
+        call_user_error_handler(http)
       end
     
       def success_callback(http, data=nil)
         case http.response_header.status
         when 0, 400, 401, 404, 403, 409, 411, 412, 416, 500, 503
-          puts "retrying after: status #{http.response_header.status rescue ''}"
-          handle_retry(data)
+          if should_retry?
+            puts "retrying after: status #{http.response_header.status rescue ''}"
+            handle_retry(data)
+          else
+            call_user_error_handler(http)
+          end
         when 300, 301, 303, 304, 307
           puts "being redirected_to: #{http.response_header['LOCATION'] rescue ''}"
           handle_redirect(http.response_header['LOCATION'], data)
         else
-          options[:on_success].call(http) if options[:on_success].respond_to?(:call)
+          call_user_success_handler(http)
         end
       end
       
+      def call_user_error_handler(http)
+        options[:on_error].call(http) if options[:on_error].respond_to?(:call)
+      end
+      
+      def call_user_success_handler(http)
+        options[:on_success].call(http) if options[:on_success].respond_to?(:call)
+      end
+      
+      def should_retry?
+        options[:retry_count] > 0
+      end
+      
       def handle_retry(data)
-        if options[:retry_count] > 0
+        if should_retry?
           if data
             self.class.new(bucket, aws_id, options.update(:retry_count => options[:retry_count] - 1 )).put(data)
           else
