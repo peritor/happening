@@ -4,6 +4,7 @@ class ItemTest < Test::Unit::TestCase
   context "An Happening::S3::Item instance" do
     
     setup do
+      Happening::Log.level = Logger::ERROR
       @item = Happening::S3::Item.new('the-bucket', 'the-key', :aws_access_key_id => '123', :aws_secret_access_key => 'secret', :server => '127.0.0.1')
     end
     

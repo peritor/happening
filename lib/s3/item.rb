@@ -30,7 +30,7 @@ module Happening
     
       def get
         headers = needs_to_sign? ? aws.sign("GET", path) : {}
-      
+        Happening::Log.debug "GET #{url}"
         http = http_class.new(url).get(:timeout => options[:timeout], :head => headers)
 
         http.errback { error_callback(http) }
@@ -41,6 +41,7 @@ module Happening
       def put(data)
         permissions = options[:permissions] != 'private' ? {'x-amz-acl' => options[:permissions] } : {}
         headers = needs_to_sign? ? aws.sign("PUT", path, permissions.update({'url' => path})) : {}
+        Happening::Log.debug "PUT #{url}"
         http = http_class.new(url).put(:timeout => options[:timeout], :head => headers, :body => data)
 
         http.errback { error_callback(http) }
@@ -71,16 +72,17 @@ module Happening
       end
     
       def success_callback(http, data=nil)
+        Happening::Log.debug "Response #{http.response_header.status}"
         case http.response_header.status
         when 0, 400, 401, 404, 403, 409, 411, 412, 416, 500, 503
           if should_retry?
-            puts "retrying after: status #{http.response_header.status rescue ''}"
+            Happening::Log.debug "retrying after: status #{http.response_header.status rescue ''}"
             handle_retry(data)
           else
             call_user_error_handler(http)
           end
         when 300, 301, 303, 304, 307
-          puts "being redirected_to: #{http.response_header['LOCATION'] rescue ''}"
+          Happening::Log.info "being redirected_to: #{http.response_header['LOCATION'] rescue ''}"
           handle_redirect(http.response_header['LOCATION'], data)
         else
           call_user_success_handler(http)
@@ -107,7 +109,7 @@ module Happening
             self.class.new(bucket, aws_id, options.update(:retry_count => options[:retry_count] - 1 )).get
           end
         else
-          puts "Re-tried too often - giving up"
+          Happening::Log.info "Re-tried too often - giving up" if Happening.debug?
         end
       end
     
