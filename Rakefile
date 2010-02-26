@@ -19,8 +19,8 @@ begin
     s.description = "An EventMachine based S3 client - using em-http-request"
     s.authors = ["Jonathan Weiss"]
     s.files = FileList["[A-Z]*.*", "{lib}/**/*"]
-    s.add_dependency('em-http')
-    s.add_dependency('active_support')
+    s.add_dependency('em-http-request')
+    s.add_dependency('activesupport')
   end
 rescue LoadError
   puts "Jeweler not available. Install it with: sudo gem install technicalpickles-jeweler -s http://gems.github.com"
