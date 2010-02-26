@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{happening}
-  s.version = "0.0.3"
+  s.version = "0.0.4"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jonathan Weiss"]
@@ -19,10 +19,11 @@ Gem::Specification.new do |s|
   s.files = [
     "LICENSE.txt",
      "README.md",
-     "lib/aws.rb",
-     "lib/log.rb",
-     "lib/s3/item.rb",
-     "lib/s3/request.rb"
+     "lib/happening.rb",
+     "lib/happening/aws.rb",
+     "lib/happening/log.rb",
+     "lib/happening/s3/item.rb",
+     "lib/happening/s3/request.rb"
   ]
   s.homepage = %q{http://github.com/peritor/happening}
   s.rdoc_options = ["--charset=UTF-8"]
