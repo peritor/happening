@@ -4,7 +4,7 @@ class ItemTest < Test::Unit::TestCase
   context "An Happening::S3::Request instance" do
     
     setup do
-      Happening::Log.level = Logger::DEBUG
+      Happening::Log.level = Logger::ERROR
       @response_stub = stub()
       @response_stub.stubs(:errback)
       @response_stub.stubs(:callback)
