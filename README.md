@@ -5,7 +5,7 @@ By using EventMachine Happening does not block on S3 downloads/uploads thus allo
 Happening was developed by [Peritor](http://www.peritor.com) for usage inside Nanite/EventMachine. 
 Alternatives like RightAws block during the HTTP calls thus blocking the Nanite-Agent.
 
-For now it only supports GET and PUT operations. The PUT operations support S3 ACLs/permissions.
+For now it only supports GET, PUT and DELETE operations on S3 items. The PUT operations support S3 ACLs/permissions.
 Happening will handle redirects and retries on errors by default.
 
 Installation
@@ -24,6 +24,10 @@ Usage
     
       item = Happening::S3::Item.new('bucket', 'item_id', :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret')
       item.get # authenticated download
+      
+      item.put("The new content")
+      
+      item.delete
     end
     
 The above examples are a bit useless, as you never get any content back. 
@@ -80,6 +84,19 @@ Setting permissions looks like this:
       item.get
     end
 
+Deleting
+=============
+
+Happening support the simple S3 PUT upload:    
+  
+    EM.run do
+      on_error = Proc.new {|http| puts "An error occured: #{http.response_header.status}"; EM.stop }
+      on_success = Proc.new {|http| puts "Deleted!"; EM.stop }
+      item = Happening::S3::Item.new('bucket', 'item_id', :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret')
+      item.delete
+    end
+
+Amazon returns no content on delete, so having a success handler is usually not needed for delete operations.
 
 Credits
 =============

@@ -6,6 +6,9 @@ class ItemTest < Test::Unit::TestCase
     setup do
       Happening::Log.level = Logger::ERROR
       @item = Happening::S3::Item.new('the-bucket', 'the-key', :aws_access_key_id => '123', :aws_secret_access_key => 'secret', :server => '127.0.0.1')
+      
+      @time = "Thu, 25 Feb 2010 10:00:00 GMT"
+      Time.stubs(:now).returns(stub(:httpdate => @time, :to_i => 99, :usec => 88))
     end
     
     context "validation" do
@@ -129,11 +132,80 @@ class ItemTest < Test::Unit::TestCase
       end
     end
     
-    context "when saving an item" do
-      setup do
-        @time = "Thu, 25 Feb 2010 10:00:00 GMT"
-        Time.stubs(:now).returns(stub(:httpdate => @time, :to_i => 99, :usec => 88))
+    context "when deleting an item" do
+      should "send a DELETE to the items location" do
+        EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :delete, {
+           "Authorization"=>"AWS abc:nvkrlq4wor1qbFXZh6rHnAbiRjk=", 
+           'date' => @time, 
+           'url' => "/bucket/the-key"}, fake_response("data-here"))
+
+        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
+        run_in_em_loop do
+          @item.delete
+
+          EM.add_timer(1) {
+            EM.stop_event_loop
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :delete, {
+              "Authorization"=>"AWS abc:nvkrlq4wor1qbFXZh6rHnAbiRjk=", 
+              'date' => @time, 
+              'url' => "/bucket/the-key"})
+          }
+
+        end
       end
+      
+      should "handle re-direct" do
+        EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :delete, {
+           "Authorization"=>"AWS abc:nvkrlq4wor1qbFXZh6rHnAbiRjk=", 
+           'date' => @time, 
+           'url' => "/bucket/the-key"}, redirect_response('https://bucket.s3-external-3.amazonaws.com/the-key'))
+        EventMachine::MockHttpRequest.register('https://bucket.s3-external-3.amazonaws.com:443/the-key', :delete, {
+           "Authorization"=>"AWS abc:nvkrlq4wor1qbFXZh6rHnAbiRjk=", 
+           'date' => @time, 
+           'url' => "/bucket/the-key"}, fake_response("success!"))
+
+        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
+        run_in_em_loop do
+          @item.delete
+
+          EM.add_timer(1) {
+            EM.stop_event_loop
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :delete, {
+              "Authorization"=>"AWS abc:nvkrlq4wor1qbFXZh6rHnAbiRjk=", 
+              'date' => @time, 
+              'url' => "/bucket/the-key"})
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3-external-3.amazonaws.com:443/the-key', :delete, {
+              "Authorization"=>"AWS abc:nvkrlq4wor1qbFXZh6rHnAbiRjk=", 
+              'date' => @time, 
+              'url' => "/bucket/the-key"})
+          }
+
+        end
+      end
+      
+      should "handle retry" do
+        EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :delete, {
+           "Authorization"=>"AWS abc:nvkrlq4wor1qbFXZh6rHnAbiRjk=", 
+           'date' => @time, 
+           'url' => "/bucket/the-key"}, error_response(400))
+
+        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
+        run_in_em_loop do
+          @item.delete
+
+          EM.add_timer(1) {
+            EM.stop_event_loop
+            assert_equal 5, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :delete, {
+              "Authorization"=>"AWS abc:nvkrlq4wor1qbFXZh6rHnAbiRjk=", 
+              'date' => @time, 
+              'url' => "/bucket/the-key"})
+          }
+
+        end
+      end
+    end
+    
+    context "when saving an item" do
       
       should "post to the desired location" do
        EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :put, {

@@ -33,8 +33,8 @@ module Happening
         Happening::Log.debug "GET #{url}"
         http = http_class.new(url).get(:timeout => options[:timeout], :head => headers)
 
-        http.errback { error_callback(http) }
-        http.callback { success_callback(http) }
+        http.errback { error_callback(:get, http) }
+        http.callback { success_callback(:get, http) }
         nil
       end
       
@@ -44,8 +44,18 @@ module Happening
         Happening::Log.debug "PUT #{url}"
         http = http_class.new(url).put(:timeout => options[:timeout], :head => headers, :body => data)
 
-        http.errback { error_callback(http) }
-        http.callback { success_callback(http, data) }
+        http.errback { error_callback(:put, http) }
+        http.callback { success_callback(:put, http, data) }
+        nil
+      end
+      
+      def delete
+        headers = needs_to_sign? ? aws.sign("DELETE", path, {'url' => path}) : {}
+        Happening::Log.debug "DELETE #{url}"
+        http = http_class.new(url).delete(:timeout => options[:timeout], :head => headers)
+
+        http.errback { error_callback(:delete, http) }
+        http.callback { success_callback(:delete, http) }
         nil
       end
     
@@ -67,23 +77,23 @@ module Happening
     
     protected
     
-      def error_callback(http)
+      def error_callback(http_method, http)
         call_user_error_handler(http)
       end
     
-      def success_callback(http, data=nil)
+      def success_callback(http_method, http, data=nil)
         Happening::Log.debug "Response #{http.response_header.status}"
         case http.response_header.status
         when 0, 400, 401, 404, 403, 409, 411, 412, 416, 500, 503
           if should_retry?
             Happening::Log.debug "retrying after: status #{http.response_header.status rescue ''}"
-            handle_retry(data)
+            handle_retry(http_method, data)
           else
             call_user_error_handler(http)
           end
         when 300, 301, 303, 304, 307
           Happening::Log.info "being redirected_to: #{http.response_header['LOCATION'] rescue ''}"
-          handle_redirect(http.response_header['LOCATION'], data)
+          handle_redirect(http_method, http.response_header['LOCATION'], data)
         else
           call_user_success_handler(http)
         end
@@ -101,25 +111,37 @@ module Happening
         options[:retry_count] > 0
       end
       
-      def handle_retry(data)
+      def handle_retry(http_method, data)
         if should_retry?
-          if data
-            self.class.new(bucket, aws_id, options.update(:retry_count => options[:retry_count] - 1 )).put(data)
+          new_request = self.class.new(bucket, aws_id, options.update(:retry_count => options[:retry_count] - 1 ))
+          case http_method
+          when :get
+            new_request.get
+          when :put
+            new_request.put(data)
+          when :delete
+            new_request.delete
           else
-            self.class.new(bucket, aws_id, options.update(:retry_count => options[:retry_count] - 1 )).get
+            raise "unknown http method #{http_method}"
           end
         else
           Happening::Log.info "Re-tried too often - giving up" if Happening.debug?
         end
       end
     
-      def handle_redirect(location, data)
+      def handle_redirect(http_method, location, data)
         new_server, new_path = extract_location(location)
 
-        if data
-          self.class.new(bucket, aws_id, options.update(:server => new_server)).put(data)
+        new_request = self.class.new(bucket, aws_id, options.update(:server => new_server))
+        case http_method
+        when :get
+          new_request.get
+        when :put
+          new_request.put(data)
+        when :delete
+          new_request.delete
         else
-          self.class.new(bucket, aws_id, options.update(:server => new_server)).get
+          raise "unknown http method #{http_method}"
         end
       end
     
