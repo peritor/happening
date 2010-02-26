@@ -66,7 +66,7 @@ Downloading many files would look like this:
 Upload
 =============
 
-Happening support the simple S3 PUT upload:    
+Happening supports the simple S3 PUT upload:    
   
     EM.run do
       on_error = Proc.new {|http| puts "An error occured: #{http.response_header.status}"; EM.stop }
