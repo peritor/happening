@@ -34,9 +34,11 @@ The above examples are a bit useless, as you never get any content back.
 You need to specify a callback that interacts with the http response:
 
     EM.run do
-      on_success = Proc.new {|http| puts "the response is: #{http.response}"; EM.stop }
-      item = Happening::S3::Item.new('bucket', 'item_id', :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret', :on_success => on_success)
-      item.get # authenticated download
+      item = Happening::S3::Item.new('bucket', 'item_id', :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret')
+      item.get do |response|
+        puts "the response content is: #{response.response}"
+        EM.stop
+      end
     end
     
 This will enqueue your download and run it in the EventMachine event loop.
@@ -44,13 +46,17 @@ This will enqueue your download and run it in the EventMachine event loop.
 You can also react to errors:
 
     EM.run do
-      on_error = Proc.new {|http| puts "An error occured: #{http.response_header.status}"; EM.stop }
-      on_success = Proc.new {|http| puts "the response is: #{http.response}"; EM.stop }
-      item = Happening::S3::Item.new('bucket', 'item_id', :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret', :on_success => on_success, :on_error => on_error)
-      item.get
+      on_error = Proc.new {|response| puts "An error occured: #{response.response_header.status}"; EM.stop }
+      item = Happening::S3::Item.new('bucket', 'item_id', :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret')
+      item.get(:on_error => on_error) do |response|
+        puts "the response content is: #{response.response}" 
+        EM.stop
+      end
     end
-    
-Downloading many files would look like this:
+
+If you don't supply an error handler yourself, Happening will be default raise an Exception.
+
+Downloading many files could look like this:
 
     EM.run do
       count = 100
@@ -58,8 +64,8 @@ Downloading many files would look like this:
       on_success = Proc.new {|http| puts "the response is: #{http.response}"; EM.stop if count <= 0}
       
       count.times do |i|
-        item = Happening::S3::Item.new('bucket', "item_#{i}", :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret', :on_success => on_success, :on_error => on_error)
-        item.get
+        item = Happening::S3::Item.new('bucket', "item_#{i}", :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret')
+        item.get(:on_success => on_success, :on_error => on_error)
       end
     end
     
@@ -70,9 +76,10 @@ Happening supports the simple S3 PUT upload:
   
     EM.run do
       on_error = Proc.new {|http| puts "An error occured: #{http.response_header.status}"; EM.stop }
-      on_success = Proc.new {|http| puts "Upload finished!"; EM.stop }
       item = Happening::S3::Item.new('bucket', 'item_id', :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret', :on_success => on_success, :on_error => on_error)
-      item.put( File.read('/etc/passwd') )
+      item.put( File.read('/etc/passwd'), :on_error => on_error ) do |response|
+        puts "Upload finished!"; EM.stop 
+      end
     end
     
 Setting permissions looks like this:
@@ -80,8 +87,8 @@ Setting permissions looks like this:
     EM.run do
       on_error = Proc.new {|http| puts "An error occured: #{http.response_header.status}"; EM.stop }
       on_success = Proc.new {|http| puts "the response is: #{http.response}"; EM.stop }
-      item = Happening::S3::Item.new('bucket', 'item_id', :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret', :permissions => 'public-write', :on_success => on_success, :on_error => on_error)
-      item.get
+      item = Happening::S3::Item.new('bucket', 'item_id', :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret', :permissions => 'public-write')
+      item.get(:on_success => on_success, :on_error => on_error)
     end
 
 Deleting

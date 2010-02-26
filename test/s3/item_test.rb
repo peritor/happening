@@ -68,9 +68,31 @@ class ItemTest < Test::Unit::TestCase
         called = false
         data = nil
         on_success = Proc.new {|http| called = true, data = http.response}
-        @item = Happening::S3::Item.new('bucket', 'the-key', :on_success => on_success)
+        @item = Happening::S3::Item.new('bucket', 'the-key')
         run_in_em_loop do
-          @item.get
+          @item.get(:on_success => on_success)
+          
+          EM.add_timer(1) {
+            assert called
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :get, {})
+            assert_equal "data-here\n", data
+            EM.stop_event_loop
+          }
+          
+        end
+      end
+      
+      should "support direct blocks" do
+        EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :get, {}, fake_response("data-here"))
+        
+        called = false
+        data = nil
+        @item = Happening::S3::Item.new('bucket', 'the-key')
+        run_in_em_loop do
+          @item.get do |http| 
+            called = true
+            data = http.response
+          end
           
           EM.add_timer(1) {
             assert called
@@ -104,7 +126,7 @@ class ItemTest < Test::Unit::TestCase
 
         @item = Happening::S3::Item.new('bucket', 'the-key')
         run_in_em_loop do
-          @item.get
+          @item.get(:on_error => Proc.new{} ) #ignore error
 
           EM.add_timer(1) {
             EM.stop_event_loop
@@ -191,7 +213,7 @@ class ItemTest < Test::Unit::TestCase
 
         @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
         run_in_em_loop do
-          @item.delete
+          @item.delete(:on_error => Proc.new{} ) #ignore error
 
           EM.add_timer(1) {
             EM.stop_event_loop
@@ -289,7 +311,7 @@ class ItemTest < Test::Unit::TestCase
 
         @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
         run_in_em_loop do
-          @item.put('content')
+          @item.put('content', :on_error => Proc.new{} )
 
           EM.add_timer(1) {
             EM.stop_event_loop
@@ -311,9 +333,9 @@ class ItemTest < Test::Unit::TestCase
        called = false
        on_error = Proc.new {|http| called = true}
 
-        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123', :retry_count => 1, :on_error => on_error)
+        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
         run_in_em_loop do
-          @item.put('content')
+          @item.put('content', :on_error => on_error, :retry_count => 1)
 
           EM.add_timer(1) {
             EM.stop_event_loop

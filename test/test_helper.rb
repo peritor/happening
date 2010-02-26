@@ -33,7 +33,7 @@ end
 
 module Happening
   module S3
-    class Item
+    class Request
       def http_class
         EventMachine::MockHttpRequest
       end
@@ -92,20 +92,3 @@ module EventMachine
     @@pass_through_requests = false
   end
 end
-#     def send_request(&blk)
-#       # raise @options.inspect
-#       query = "#{@uri.scheme}://#{@uri.host}:#{@uri.port}#{encode_query(@uri.path, @options[:query], @uri.query)}"
-#       cache_key = query + @options.to_s
-#       if s = @@registry[cache_key] and fake = s[@method]
-#         @@registry_count[cache_key][@method] += 1
-#         client = FakeHttpClient.new(nil)
-#         client.setup(fake, @uri)
-#         client
-#       elsif @@pass_through_requests
-#         real_send_request
-#       else
-#         raise "this request #{query} for method #{@method} isn't registered, and pass_through_requests is current set to false"
-#       end
-#     end
-#   end
-# end
