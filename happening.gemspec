@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{happening}
-  s.version = "0.0.4"
+  s.version = "0.0.5"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jonathan Weiss"]
-  s.date = %q{2010-02-26}
+  s.date = %q{2010-02-27}
   s.description = %q{An EventMachine based S3 client - using em-http-request}
   s.email = %q{info@peritor.com}
   s.extra_rdoc_files = [
