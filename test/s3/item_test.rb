@@ -176,6 +176,34 @@ class ItemTest < Test::Unit::TestCase
         end
       end
       
+      should "support direct blocks" do
+        EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :delete, {
+           "Authorization"=>"AWS abc:nvkrlq4wor1qbFXZh6rHnAbiRjk=", 
+           'date' => @time, 
+           'url' => "/bucket/the-key"}, fake_response("data-here"))
+        
+        called = false
+        data = nil
+        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
+        run_in_em_loop do
+          @item.delete do |http| 
+            called = true
+            data = http.response
+          end
+          
+          EM.add_timer(1) {
+            assert called
+            assert_equal "data-here\n", data
+            EM.stop_event_loop
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :delete, {
+              "Authorization"=>"AWS abc:nvkrlq4wor1qbFXZh6rHnAbiRjk=", 
+              'date' => @time, 
+              'url' => "/bucket/the-key"})
+          }
+          
+        end
+      end
+      
       should "handle re-direct" do
         EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :delete, {
            "Authorization"=>"AWS abc:nvkrlq4wor1qbFXZh6rHnAbiRjk=", 
@@ -247,6 +275,34 @@ class ItemTest < Test::Unit::TestCase
               'url' => "/bucket/the-key"})
           }
 
+        end
+      end
+      
+      should "support direct blocks" do
+        EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+           "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 
+           'date' => @time, 
+           'url' => "/bucket/the-key"}, fake_response("data-here"))
+        
+        called = false
+        data = nil
+        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
+        run_in_em_loop do
+          @item.put('upload me') do |http| 
+            called = true
+            data = http.response
+          end
+          
+          EM.add_timer(1) {
+            assert called
+            assert_equal "data-here\n", data
+            EM.stop_event_loop
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+              "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 
+              'date' => @time, 
+              'url' => "/bucket/the-key"})
+          }
+          
         end
       end
       

@@ -33,17 +33,17 @@ module Happening
         Happening::S3::Request.new(:get, url, request_options).execute
       end
       
-      def put(data, request_options = {})
+      def put(data, request_options = {}, &blk)
         permissions = options[:permissions] != 'private' ? {'x-amz-acl' => options[:permissions] } : {}
         headers = needs_to_sign? ? aws.sign("PUT", path, permissions.update({'url' => path})) : {}
-        
+        request_options[:on_success] = blk if blk
         request_options.update(:headers => headers, :data => data)
         Happening::S3::Request.new(:put, url, request_options).execute
       end
       
-      def delete(request_options = {})
+      def delete(request_options = {}, &blk)
         headers = needs_to_sign? ? aws.sign("DELETE", path, {'url' => path}) : {}
-        
+        request_options[:on_success] = blk if blk
         request_options.update(:headers => headers)
         Happening::S3::Request.new(:delete, url, request_options).execute
       end
