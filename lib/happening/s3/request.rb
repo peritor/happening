@@ -42,26 +42,26 @@ module Happening
       end
       
       def error_callback
-        Happening::Log.error "Response #{response.response_header.status rescue ''}"
+        Happening::Log.error "#{http_method.to_s.upcase} #{url}: Response #{response.response_header.status rescue ''}"
         if options[:on_error].respond_to?(:call)
           call_user_error_handler
         else
-          raise Happening::Error.new("Failed reponse! Status code was #{response.response_header.status rescue ''}")
+          raise Happening::Error.new("#{http_method.to_s.upcase} #{url}: Failed reponse! Status code was #{response.response_header.status rescue ''}")
         end
       end
       
       def success_callback
-        Happening::Log.debug "Response #{response.response_header.status rescue ''}"
+        Happening::Log.debug "#{http_method.to_s.upcase} #{url}: Response #{response.response_header.status rescue ''}"
         case response.response_header.status
         when 0, 400, 401, 404, 403, 409, 411, 412, 416, 500, 503
           if should_retry?
-            Happening::Log.debug "retrying after: status #{response.response_header.status rescue ''}"
+            Happening::Log.debug "#{http_method.to_s.upcase} #{url}: retrying after: status #{response.response_header.status rescue ''}"
             handle_retry
           else
             error_callback
           end
         when 300, 301, 303, 304, 307
-          Happening::Log.info "being redirected_to: #{response.response_header['LOCATION'] rescue ''}"
+          Happening::Log.info "#{http_method.to_s.upcase} #{url}: being redirected_to: #{response.response_header['LOCATION'] rescue ''}"
           handle_redirect
         else
           call_user_success_handler
@@ -86,7 +86,7 @@ module Happening
           new_request = self.class.new(http_method, url, options.update(:retry_count => options[:retry_count] - 1 ))
           new_request.execute
         else
-          Happening::Log.info "Re-tried too often - giving up" if Happening.debug?
+          Happening::Log.error "#{http_method.to_s.upcase} #{url}: Re-tried too often - giving up"
         end
       end
       

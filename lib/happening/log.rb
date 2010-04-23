@@ -21,19 +21,19 @@ module Happening
     end
     
     def self.debug(msg)
-      logger.debug(msg)
+      logger.debug("Happening: #{msg}")
     end
     
     def self.info(msg)
-      logger.info(msg)
+      logger.debug("Happening: #{msg}")
     end
     
     def self.warn(msg)
-      logger.warn(msg)
+      logger.debug("Happening: #{msg}")
     end
     
     def self.error(msg)
-      logger.error(msg)
+      logger.debug("Happening: #{msg}")
     end
     
   end
