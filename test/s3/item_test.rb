@@ -329,6 +329,53 @@ class ItemTest < Test::Unit::TestCase
         end
       end
       
+      should "allow to set custom headers" do
+       EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+         "Authorization"=>"AWS abc:wrPkGKrlwH2AtNzBVS80vU73TDc=", 
+         'date' => @time, 
+         'url' => "/bucket/the-key",
+         "x-amz-acl" => 'public-read',
+         'Cache-Control' => "max-age=252460800",
+         'Expires' => 'Fri, 16 Nov 2018 22:09:29 GMT',
+         'x-amz-meta-abc' => 'ABC'}, fake_response("data-here"))
+         
+        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', 
+                                                             :aws_secret_access_key => '123' , 
+                                                             :permissions => 'public-read')
+        run_in_em_loop do
+          @item.put('content', :headers => { 
+             'Expires' => 'Fri, 16 Nov 2018 22:09:29 GMT',
+             'Cache-Control' => "max-age=252460800",
+             'x-amz-meta-abc' => 'ABC'})
+
+          EM.add_timer(1) {
+            EM.stop_event_loop
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :put, {
+              "Authorization"=>"AWS abc:wrPkGKrlwH2AtNzBVS80vU73TDc=", 
+              'date' => @time, 
+              'url' => "/bucket/the-key",
+              'x-amz-acl' => 'public-read',
+              'Cache-Control' => "max-age=252460800",
+              'Expires' => 'Fri, 16 Nov 2018 22:09:29 GMT',
+              'x-amz-meta-abc' => 'ABC'})
+          }
+
+        end
+      end
+      
+      should "validate the headers" do
+
+        @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', 
+                                                             :aws_secret_access_key => '123' , 
+                                                             :permissions => 'public-read')
+                                                             
+        assert_raise(ArgumentError) do
+          @item.put('content', :headers => { 
+             'expires' => 'Fri, 16 Nov 2018 22:09:29 GMT',
+             'cache_control' => "max-age=252460800"})
+        end                                                    
+      end
+      
       should "re-post to a new location" do
         EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :put, {
           "Authorization"=>"AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=", 

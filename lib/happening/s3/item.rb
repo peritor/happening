@@ -6,6 +6,7 @@ module Happening
     class Item
     
       REQUIRED_FIELDS = [:server]
+      VALID_HEADERS = ['Cache-Control', 'Content-Disposition', 'Content-Encoding', 'Content-Length', 'Content-MD5', 'Content-Type', 'Expect', 'Expires']
     
       attr_accessor :bucket, :aws_id, :options
     
@@ -34,8 +35,7 @@ module Happening
       end
       
       def put(data, request_options = {}, &blk)
-        permissions = options[:permissions] != 'private' ? {'x-amz-acl' => options[:permissions] } : {}
-        headers = needs_to_sign? ? aws.sign("PUT", path, permissions.update({'url' => path})) : {}
+        headers = construct_aws_headers('PUT', request_options.delete(:headers) || {})
         request_options[:on_success] = blk if blk
         request_options.update(:headers => headers, :data => data)
         Happening::S3::Request.new(:put, url, request_options).execute
@@ -92,6 +92,18 @@ module Happening
       
       def aws
         @aws ||= Happening::AWS.new(options[:aws_access_key_id], options[:aws_secret_access_key])
+      end
+      
+      def construct_aws_headers(http_method, headers = {})
+        unless headers.keys.all?{|header| VALID_HEADERS.include?(header) || header.to_s.match(/\Ax-amz-/) }
+          raise ArgumentError, "invalid headers. All headers must either one of #{VALID_HEADERS} or start with 'x-amz-'" 
+        end
+        
+        permissions = options[:permissions] != 'private' ? {'x-amz-acl' => options[:permissions] } : {}
+        headers.update(permissions)
+        headers.update({'url' => path})
+        
+        headers = needs_to_sign? ? aws.sign(http_method, path, headers) : headers
       end
     
     end
