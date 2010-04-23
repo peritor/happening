@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{happening}
-  s.version = "0.0.5"
+  s.version = "0.0.6"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jonathan Weiss"]
-  s.date = %q{2010-02-27}
+  s.date = %q{2010-04-23}
   s.description = %q{An EventMachine based S3 client - using em-http-request}
   s.email = %q{info@peritor.com}
   s.extra_rdoc_files = [
@@ -28,7 +28,7 @@ Gem::Specification.new do |s|
   s.homepage = %q{http://github.com/peritor/happening}
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
-  s.rubygems_version = %q{1.3.5}
+  s.rubygems_version = %q{1.3.6}
   s.summary = %q{An EventMachine based S3 client}
   s.test_files = [
     "test/aws_test.rb",
