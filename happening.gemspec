@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{happening}
-  s.version = "0.0.7"
+  s.version = "0.0.8"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jonathan Weiss"]
-  s.date = %q{2010-04-23}
+  s.date = %q{2010-04-30}
   s.description = %q{An EventMachine based S3 client - using em-http-request}
   s.email = %q{info@peritor.com}
   s.extra_rdoc_files = [
@@ -22,6 +22,7 @@ Gem::Specification.new do |s|
      "lib/happening.rb",
      "lib/happening/aws.rb",
      "lib/happening/log.rb",
+     "lib/happening/s3.rb",
      "lib/happening/s3/item.rb",
      "lib/happening/s3/request.rb"
   ]
@@ -34,6 +35,7 @@ Gem::Specification.new do |s|
     "test/aws_test.rb",
      "test/s3/item_test.rb",
      "test/s3/request_test.rb",
+     "test/s3_test.rb",
      "test/test_helper.rb"
   ]
 
