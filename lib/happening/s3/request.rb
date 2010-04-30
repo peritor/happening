@@ -27,7 +27,7 @@ module Happening
       end
       
       def execute
-        Happening::Log.debug "#{http_method.to_s.upcase} #{url}"
+        Happening::Log.debug "Request: #{http_method.to_s.upcase} #{url}"
         @response = http_class.new(url).send(http_method, :timeout => options[:timeout], :head => options[:headers], :body => options[:data], :ssl => options[:ssl])
 
         @response.errback { error_callback }
@@ -46,8 +46,11 @@ module Happening
       end
       
       def error_callback
-        Happening::Log.error "#{http_method.to_s.upcase} #{url}: Response #{response.response_header.status rescue ''}"
-        if options[:on_error].respond_to?(:call)
+        Happening::Log.error "Response error: #{http_method.to_s.upcase} #{url}: #{response.response_header.status rescue ''}"
+        if should_retry?
+          Happening::Log.info "#{http_method.to_s.upcase} #{url}: retrying after error: status #{response.response_header.status rescue ''}"
+          handle_retry
+        elsif options[:on_error].respond_to?(:call)
           call_user_error_handler
         else
           raise Happening::Error.new("#{http_method.to_s.upcase} #{url}: Failed reponse! Status code was #{response.response_header.status rescue ''}")
@@ -55,13 +58,14 @@ module Happening
       end
       
       def success_callback
-        Happening::Log.debug "#{http_method.to_s.upcase} #{url}: Response #{response.response_header.status rescue ''}"
+        Happening::Log.debug "Response success: #{http_method.to_s.upcase} #{url}: #{response.response_header.status rescue ''}"
         case response.response_header.status
         when 0, 400, 401, 404, 403, 409, 411, 412, 416, 500, 503
           if should_retry?
-            Happening::Log.debug "#{http_method.to_s.upcase} #{url}: retrying after: status #{response.response_header.status rescue ''}"
+            Happening::Log.info "#{http_method.to_s.upcase} #{url}: retrying after: status #{response.response_header.status rescue ''}"
             handle_retry
           else
+            Happening::Log.error "#{http_method.to_s.upcase} #{url}: Re-tried too often - giving up"
             error_callback
           end
         when 300, 301, 303, 304, 307
@@ -83,7 +87,6 @@ module Happening
       def should_retry?
         options[:retry_count] > 0
       end
-      
       
       def handle_retry
         if should_retry?
