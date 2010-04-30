@@ -18,9 +18,10 @@ module Happening
           :aws_access_key_id => nil,
           :aws_secret_access_key => nil,
           :retry_count => 4,
-          :permissions => 'private'
+          :permissions => 'private',
+          :ssl => Happening::S3.ssl_options
         }.update(options.symbolize_keys)
-        options.assert_valid_keys(:timeout, :server, :protocol, :aws_access_key_id, :aws_secret_access_key, :retry_count, :permissions)
+        options.assert_valid_keys(:timeout, :server, :protocol, :aws_access_key_id, :aws_secret_access_key, :retry_count, :permissions, :ssl)
         @aws_id = aws_id.to_s
         @bucket = bucket.to_s
       
@@ -31,21 +32,21 @@ module Happening
         headers = needs_to_sign? ? aws.sign("GET", path) : {}
         request_options[:on_success] = blk if blk
         request_options.update(:headers => headers)
-        Happening::S3::Request.new(:get, url, request_options).execute
+        Happening::S3::Request.new(:get, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
       
       def put(data, request_options = {}, &blk)
         headers = construct_aws_headers('PUT', request_options.delete(:headers) || {})
         request_options[:on_success] = blk if blk
         request_options.update(:headers => headers, :data => data)
-        Happening::S3::Request.new(:put, url, request_options).execute
+        Happening::S3::Request.new(:put, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
       
       def delete(request_options = {}, &blk)
         headers = needs_to_sign? ? aws.sign("DELETE", path, {'url' => path}) : {}
         request_options[:on_success] = blk if blk
         request_options.update(:headers => headers)
-        Happening::S3::Request.new(:delete, url, request_options).execute
+        Happening::S3::Request.new(:delete, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
     
       def url

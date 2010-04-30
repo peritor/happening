@@ -454,5 +454,36 @@ class ItemTest < Test::Unit::TestCase
       
     end
     
+    context "SSL options" do
+      setup do
+        Happening::S3.ssl_options[:verify_peer] = true
+        Happening::S3.ssl_options[:cert_chain_file] = '/etc/foo.ca'
+      end
+      
+      should "re-use the global options" do
+        item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
+        assert item.options[:ssl][:verify_peer]
+        assert_equal '/etc/foo.ca', item.options[:ssl][:cert_chain_file]
+      end
+      
+      should "allow to override global options" do
+        item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123', :ssl => {:cert_chain_file => nil, :verify_peer => false})
+        assert !item.options[:ssl][:verify_peer]
+        assert_nil item.options[:ssl][:cert_chain_file]
+      end
+      
+      should "pass the options to the Request" do
+        item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
+        Happening::S3::Request.expects(:new).with(:get, anything, {:ssl => {:cert_chain_file => '/etc/foo.ca', :verify_peer => true}, :headers => {'Authorization' => 'AWS abc:LGLdCdGTuLAHs+InbMWEnQR6djc=', 'date' => 'Thu, 25 Feb 2010 10:00:00 GMT'}}).returns(stub(:execute => nil))
+        item.get
+      end
+      
+      should "allow to override the options per request" do
+        item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
+        Happening::S3::Request.expects(:new).with(:get, anything, {:ssl => {:foo => :bar}, :headers => {'Authorization' => 'AWS abc:LGLdCdGTuLAHs+InbMWEnQR6djc=', 'date' => 'Thu, 25 Feb 2010 10:00:00 GMT'}}).returns(stub(:execute => nil))
+        item.get(:ssl => {:foo => :bar})
+      end
+    end
+    
   end
 end

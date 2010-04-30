@@ -13,9 +13,13 @@ module Happening
           :headers => {},
           :on_error => nil,
           :on_success => nil,
-          :data => nil
+          :data => nil,
+          :ssl => {
+            :cert_chain_file => nil,
+            :verify_peer => false
+          }
         }.update(options)
-        options.assert_valid_keys(:timeout, :on_success, :on_error, :retry_count, :headers, :data)
+        options.assert_valid_keys(:timeout, :on_success, :on_error, :retry_count, :headers, :data, :ssl)
         @http_method = http_method
         @url = url
         
@@ -24,7 +28,7 @@ module Happening
       
       def execute
         Happening::Log.debug "#{http_method.to_s.upcase} #{url}"
-        @response = http_class.new(url).send(http_method, :timeout => options[:timeout], :head => options[:headers], :body => options[:data])
+        @response = http_class.new(url).send(http_method, :timeout => options[:timeout], :head => options[:headers], :body => options[:data], :ssl => options[:ssl])
 
         @response.errback { error_callback }
         @response.callback { success_callback }

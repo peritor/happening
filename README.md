@@ -124,6 +124,31 @@ Happening support the simple S3 PUT upload:
 
 Amazon returns no content on delete, so having a success handler is usually not needed for delete operations.
 
+SSL Support
+=============
+
+Happening will use SSL/HTTPS by default. What it cannot do by default is verify the SSL certificate. This means 
+that traffic is encrypted but nobody can say if the SSL-endpoint is the one you except. In order to verify the 
+SSL certificate you need to provide Happening with the path to a certificate CA collection in PEM format:
+
+    Happening::S3.ssl_options[:cert_chain_file] = '/etc/ca-bundle.crt'
+    
+You can also set this option on each item:
+
+    Happening::S3::Item.new('bucket', 'item_id', 
+      :aws_access_key_id => 'A', 
+      :aws_secret_access_key => 'B',
+      :ssl => {
+        :cert_chain_file => '/etc/ca-bundle.crt'
+      }
+      
+Or even on the request:
+
+    item.get(:ssl => {:cert_chain_file => '/etc/ca-bundle.crt'})
+    
+The SSL options are directly passed to EventMachine, see the [EventMachine documentation](http://eventmachine.rubyforge.org/EventMachine/Connection.html#M000296) for more information on the SSL support.
+
+
 Credits
 =============
 

@@ -45,16 +45,23 @@ class ItemTest < Test::Unit::TestCase
       
       should "pass the given headers and options" do
         request = mock('em-http-request')
-        request.expects(:get).with(:timeout => 10, :head => {'a' => 'b'}, :body => nil).returns(@response_stub)
+        request.expects(:get).with(:timeout => 10, :head => {'a' => 'b'}, :body => nil,  :ssl => {:verify_peer => false, :cert_chain_file => nil}).returns(@response_stub)
         EventMachine::MockHttpRequest.expects(:new).with('https://www.example.com').returns(request)
         Happening::S3::Request.new(:get, 'https://www.example.com', :headers => {'a' => 'b'}).execute
       end
       
       should "post any given data" do
         request = mock('em-http-request')
-        request.expects(:put).with(:timeout => 10, :body => 'the-data', :head => {}).returns(@response_stub)
+        request.expects(:put).with(:timeout => 10, :body => 'the-data', :head => {},  :ssl => {:verify_peer => false, :cert_chain_file => nil}).returns(@response_stub)
         EventMachine::MockHttpRequest.expects(:new).with('https://www.example.com').returns(request)
         Happening::S3::Request.new(:put, 'https://www.example.com', :data => 'the-data').execute
+      end
+      
+      should "pass SSL options to em-http-request" do
+        request = mock('em-http-request')
+        request.expects(:put).with(:timeout => 10, :body => 'the-data', :head => {}, :ssl => {:verfiy_peer => true, :cert_chain_file => '/tmp/server.crt'}).returns(@response_stub)
+        EventMachine::MockHttpRequest.expects(:new).with('https://www.example.com').returns(request)
+        Happening::S3::Request.new(:put, 'https://www.example.com', :data => 'the-data', :ssl => {:verfiy_peer => true, :cert_chain_file => '/tmp/server.crt'}).execute
       end
       
       context "when handling errors" do
