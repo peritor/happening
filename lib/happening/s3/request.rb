@@ -2,7 +2,7 @@ module Happening
   module S3
     class Request
       
-      VALID_HTTP_METHODS = [:get, :put, :delete]
+      VALID_HTTP_METHODS = [:head, :get, :put, :delete]
       
       attr_accessor :http_method, :url, :options, :response
       

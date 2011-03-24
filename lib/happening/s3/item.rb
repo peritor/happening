@@ -28,6 +28,13 @@ module Happening
         validate
       end
     
+      def head(request_options = {}, &blk)
+        headers = needs_to_sign? ? aws.sign("HEAD", path) : {}
+        request_options[:on_success] = blk if blk
+        request_options.update(:headers => headers)
+        Happening::S3::Request.new(:head, url, {:ssl => options[:ssl]}.update(request_options)).execute
+      end
+
       def get(request_options = {}, &blk)
         headers = needs_to_sign? ? aws.sign("GET", path) : {}
         request_options[:on_success] = blk if blk
