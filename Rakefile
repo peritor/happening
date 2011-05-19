@@ -21,8 +21,12 @@ begin
     s.files = FileList["[A-Z]*.*", "{lib}/**/*"]
     s.add_dependency('em-http-request')
     s.add_dependency('activesupport')
+    s.add_dependency('i18n')
+    s.add_development_dependency('jeweler')
+    s.add_development_dependency('shoulda')
+    s.add_development_dependency('mocha')
   end
 rescue LoadError
-  puts "Jeweler not available. Install it with: sudo gem install technicalpickles-jeweler -s http://gems.github.com"
+  puts "Jeweler not available. Install it with: [sudo] gem install jeweler"
 end
 
