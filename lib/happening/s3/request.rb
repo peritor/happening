@@ -1,6 +1,7 @@
 module Happening
   module S3
     class Request
+      include Utils
       
       VALID_HTTP_METHODS = [:get, :put, :delete]
       
@@ -19,7 +20,7 @@ module Happening
             :verify_peer => false
           }
         }.update(options)
-        options.assert_valid_keys(:timeout, :on_success, :on_error, :retry_count, :headers, :data, :ssl)
+        assert_valid_keys(options, :timeout, :on_success, :on_error, :retry_count, :headers, :data, :ssl)
         @http_method = http_method
         @url = url
         
@@ -99,7 +100,7 @@ module Happening
       
       def handle_redirect
         new_location = response.response_header['LOCATION'] rescue ''
-        raise "Could not find the location to redirect to, empty location header?" if new_location.blank?
+        raise "Could not find the location to redirect to, empty location header?" if blank?(new_location)
 
         new_request = self.class.new(http_method, new_location, options)
         new_request.execute

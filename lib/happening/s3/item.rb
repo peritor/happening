@@ -4,12 +4,13 @@ require 'cgi'
 module Happening
   module S3
     class Item
+      include Utils
     
       REQUIRED_FIELDS = [:server]
       VALID_HEADERS = ['Cache-Control', 'Content-Disposition', 'Content-Encoding', 'Content-Length', 'Content-MD5', 'Content-Type', 'Expect', 'Expires']
     
       attr_accessor :bucket, :aws_id, :options
-    
+
       def initialize(bucket, aws_id, options = {})
         @options = {
           :timeout => 10,
@@ -20,8 +21,8 @@ module Happening
           :retry_count => 4,
           :permissions => 'private',
           :ssl => Happening::S3.ssl_options
-        }.update(options.symbolize_keys)
-        options.assert_valid_keys(:timeout, :server, :protocol, :aws_access_key_id, :aws_secret_access_key, :retry_count, :permissions, :ssl)
+        }.update(symbolize_keys(options))
+        assert_valid_keys(options, :timeout, :server, :protocol, :aws_access_key_id, :aws_secret_access_key, :retry_count, :permissions, :ssl)
         @aws_id = aws_id.to_s
         @bucket = bucket.to_s
       
@@ -64,7 +65,7 @@ module Happening
     protected
         
       def needs_to_sign?
-        options[:aws_access_key_id].present?
+        present?(options[:aws_access_key_id])
       end
     
       def dns_bucket?
@@ -81,11 +82,11 @@ module Happening
       end
     
       def validate
-        raise ArgumentError, "need a bucket name" unless bucket.present?
-        raise ArgumentError, "need a AWS Key" unless aws_id.present?
+        raise ArgumentError, "need a bucket name" unless present?(bucket)
+        raise ArgumentError, "need a AWS Key" unless present?(aws_id)
       
         REQUIRED_FIELDS.each do |field|
-          raise ArgumentError, "need field #{field}" unless options[field].present?
+          raise ArgumentError, "need field #{field}" unless present?(options[field])
         end
       
         raise ArgumentError, "unknown protocoll #{options[:protocol]}" unless ['http', 'https'].include?(options[:protocol])
