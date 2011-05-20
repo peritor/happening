@@ -124,6 +124,21 @@ Happening support the simple S3 PUT upload:
 
 Amazon returns no content on delete, so having a success handler is usually not needed for delete operations.
 
+Head
+=============
+
+You can also just load the headers of an S3 item:
+  
+    EM.run do
+      on_error = Proc.new {|response| puts "An error occured: #{response.response_header.status}"; EM.stop }
+      item = Happening::S3::Item.new('bucket', 'item_id', :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret')
+      item.head(:on_error => on_error) do |response|
+        puts "Headers: #{response.inspect}"
+        EM.stop
+      end
+    end
+
+
 SSL Support
 =============
 
