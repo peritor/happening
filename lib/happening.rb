@@ -3,11 +3,7 @@ require 'em-http'
 require 'openssl'
 require 'logger'
 
-require 'active_support'
-unless {}.respond_to?(:assert_valid_keys)
-  require 'active_support/core_ext'
-end
-
+require File.dirname(__FILE__) + '/happening/utils'
 require File.dirname(__FILE__) + '/happening/log'
 require File.dirname(__FILE__) + '/happening/aws'
 require File.dirname(__FILE__) + '/happening/s3'

@@ -8,7 +8,8 @@ class ItemTest < Test::Unit::TestCase
       @item = Happening::S3::Item.new('the-bucket', 'the-key', :aws_access_key_id => '123', :aws_secret_access_key => 'secret', :server => '127.0.0.1')
       
       @time = "Thu, 25 Feb 2010 10:00:00 GMT"
-      Time.stubs(:now).returns(stub(:httpdate => @time, :to_i => 99, :usec => 88))
+      Time.stubs(:now).returns(Time.parse(@time))
+      #stub(:utc_httpdate => @time, :to_i => 99, :usec => 88))
     end
     
     context "validation" do
@@ -106,7 +107,7 @@ class ItemTest < Test::Unit::TestCase
 
       should "sign requests if AWS credentials are passend" do
         time = "Thu, 25 Feb 2010 12:06:33 GMT"
-        Time.stubs(:now).returns(mock(:httpdate => time))
+        Time.stubs(:now).returns(Time.parse(time))
         EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :get, {"Authorization"=>"AWS abc:3OEcVbE//maUUmqh3A5ETEcr9TE=", 'date' => time}, fake_response("data-here"))
         
         @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')

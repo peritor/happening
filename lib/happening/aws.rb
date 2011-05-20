@@ -1,5 +1,7 @@
+require 'time'
 module Happening
   class AWS
+    include Utils
     
     AMAZON_HEADER_PREFIX   = 'x-amz-'
     AMAZON_METADATA_PREFIX = 'x-amz-meta-'
@@ -10,12 +12,12 @@ module Happening
     def initialize(aws_access_key_id, aws_secret_access_key)
       @aws_access_key_id = aws_access_key_id
       @aws_secret_access_key = aws_secret_access_key
-      raise ArgumentError, "need AWS Access Key Id and AWS Secret Key" unless aws_access_key_id.present? && aws_secret_access_key.present?
+      raise ArgumentError, "need AWS Access Key Id and AWS Secret Key" if blank?(aws_access_key_id) || blank?(aws_secret_access_key)
     end
     
     def sign(method, path, headers={})
       headers = {
-        'date' => Time.now.httpdate
+        'date' => utc_httpdate
       }.update(headers)
       
       request_description = canonical_request_description(method, path, headers)
@@ -24,6 +26,10 @@ module Happening
     
   protected
         
+    def utc_httpdate
+      Time.now.utc.httpdate
+    end
+
     def generate_signature(request_description)
       Base64.encode64(OpenSSL::HMAC.digest(DIGEST, aws_secret_access_key, request_description)).strip
     end

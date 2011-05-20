@@ -20,8 +20,6 @@ begin
     s.authors = ["Jonathan Weiss"]
     s.files = FileList["[A-Z]*.*", "{lib}/**/*"] - ["Gemfile.lock"]
     s.add_dependency('em-http-request')
-    s.add_dependency('activesupport')
-    s.add_dependency('i18n')
     s.add_development_dependency('jeweler')
     s.add_development_dependency('shoulda')
     s.add_development_dependency('mocha')
