@@ -255,7 +255,24 @@ class ItemTest < Test::Unit::TestCase
         end
       end
     end
-    
+
+    context "when loading the headers" do
+      should "request via HEAD" do
+        EventMachine::MockHttpRequest.register('https://bucket.s3.amazonaws.com:443/the-key', :head, {}, fake_response('hy there'))
+
+        @item = Happening::S3::Item.new('bucket', 'the-key')
+        run_in_em_loop do
+          @item.head
+
+          EM.add_timer(1) {
+            EM.stop_event_loop
+            assert_equal 1, EventMachine::MockHttpRequest.count('https://bucket.s3.amazonaws.com:443/the-key', :head, {})
+          }
+
+        end
+      end
+    end
+
     context "when saving an item" do
       
       should "post to the desired location" do
