@@ -5,7 +5,10 @@ require 'logger'
 
 require 'active_support'
 unless {}.respond_to?(:assert_valid_keys)
-  require 'active_support/core_ext'
+  require 'active_support/core_ext/hash/keys.rb'
+end
+unless {}.respond_to?(:blank?)
+  require 'active_support/core_ext/object/blank.rb'
 end
 
 require File.dirname(__FILE__) + '/happening/log'
