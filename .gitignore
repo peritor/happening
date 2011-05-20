@@ -1,3 +1,4 @@
 example.rb
 pkg/*
 tmp/*
+Gemfile.lock
