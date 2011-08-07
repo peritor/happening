@@ -33,7 +33,7 @@ module Happening
 
         @response.errback { error_callback }
         @response.callback { success_callback }
-        nil
+        @response
       end
       
       def http_class
