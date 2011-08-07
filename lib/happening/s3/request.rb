@@ -31,9 +31,15 @@ module Happening
         Happening::Log.debug "Request: #{http_method.to_s.upcase} #{url}"
         @response = http_class.new(url).send(http_method, :timeout => options[:timeout], :head => options[:headers], :body => options[:data], :ssl => options[:ssl])
 
-        @response.errback { error_callback }
-        @response.callback { success_callback }
-        nil
+        @response.errback { 
+          error_callback 
+          @response.set_deferred_status :failed
+        }
+        @response.callback { 
+          success_callback 
+          @response.set_deferred_status :succeeded
+        }
+        @response
       end
       
       def http_class
