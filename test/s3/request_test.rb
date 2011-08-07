@@ -43,6 +43,13 @@ class ItemTest < Test::Unit::TestCase
         Happening::S3::Request.new(:get, 'https://www.example.com').execute
       end
       
+      should "return the response" do
+        request = mock(:get => @response_stub)
+        EventMachine::MockHttpRequest.expects(:new).with('https://www.example.com').returns(request)
+        resp = Happening::S3::Request.new(:get, 'https://www.example.com').execute
+        assert_equal resp, @response_stub
+      end
+      
       should "pass the given headers and options" do
         request = mock('em-http-request')
         request.expects(:get).with(:timeout => 10, :head => {'a' => 'b'}, :body => nil,  :ssl => {:verify_peer => false, :cert_chain_file => nil}).returns(@response_stub)
