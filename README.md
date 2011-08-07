@@ -139,6 +139,20 @@ You can also just load the headers of an S3 item:
     end
 
 
+    
+Streaming
+=============
+
+The response data can also be streamed:    
+  
+    EM.run do
+      item = Happening::S3::Item.new( bucket...
+	  item.get(:on_error => on_error, :on_success => on_success ).stream do |chunk|
+	    # .. handle the individual chunk          
+	  end
+    end
+    
+
 SSL Support
 =============
 
