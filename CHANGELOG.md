@@ -1,6 +1,14 @@
 Changelog
 =============
 
+0.2.5
+
+- fix building
+
+0.2.3
+
+- yank older version
+
 0.2.2
 
 - Refactor version and build code

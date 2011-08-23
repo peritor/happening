@@ -1,40 +1,47 @@
+# encoding: utf-8
+
+require 'rubygems'
+require 'bundler'
+begin
+  Bundler.setup(:default, :development)
+rescue Bundler::BundlerError => e
+  $stderr.puts e.message
+  $stderr.puts "Run `bundle install` to install missing gems"
+  exit e.status_code
+end
 require 'rake'
+
+require 'jeweler'
+require File.expand_path("./lib/happening")
+Jeweler::Tasks.new do |gem|
+  # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
+  gem.name = "happening"
+  gem.homepage = "http://github.com/peritor/happening"
+  gem.license = "BSD"
+  gem.summary = %Q{An EventMachine based S3 client }
+  gem.description = %Q{An EventMachine based S3 client }
+  gem.email = "jw@innerewut.de"
+  gem.authors = ["Jonathan Weiss"]
+  gem.version = Happening::VERSION
+  # dependencies defined in Gemfile
+end
+Jeweler::RubygemsDotOrgTasks.new
+
 require 'rake/testtask'
-
-task :default => [:test]
-
 Rake::TestTask.new(:test) do |t|
   t.libs << 'test'
   t.pattern = "test/**/*_test.rb"
   t.verbose = true
 end
 
-def source_version
-  line = File.read("lib/#{name.gsub(/-/, "/")}.rb")[/^\s*VERSION\s*=\s*.*/]
-  line.match(/.*VERSION\s*=\s*['"](.*)['"]/)[1]
-end
+task :default => :test
 
-def name
-  'happening'
-end
+require 'rake/rdoctask'
+Rake::RDocTask.new do |rdoc|
+  version = File.exist?('VERSION') ? File.read('VERSION') : ""
 
-begin
-  require 'jeweler'
-  Jeweler::Tasks.new do |s|
-    s.name = "happening"
-    s.summary = %Q{An EventMachine based S3 client }
-    s.email = "info@peritor.com"
-    s.homepage = "http://github.com/peritor/happening"
-    s.description = "An EventMachine based S3 client - using em-http-request"
-    s.authors = ["Jonathan Weiss"]
-    s.files = FileList["[A-Z]*.*", "{lib}/**/*"] - ["Gemfile.lock"]
-    s.add_dependency('em-http-request')
-    s.add_development_dependency('jeweler')
-    s.add_development_dependency('shoulda')
-    s.add_development_dependency('mocha')
-    s.version = source_version
-  end
-  Jeweler::GemcutterTasks.new
-rescue LoadError
-  puts "Jeweler not available. Install it with: [sudo] gem install jeweler"
+  rdoc.rdoc_dir = 'rdoc'
+  rdoc.title = "hello-gem #{version}"
+  rdoc.rdoc_files.include('README*')
+  rdoc.rdoc_files.include('lib/**/*.rb')
 end

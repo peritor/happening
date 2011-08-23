@@ -13,7 +13,11 @@ unless defined?(Happening)
   require File.expand_path(File.dirname(__FILE__) + '/happening/s3/item')
 
   module Happening
-    VERSION = '0.2.2'
+    MAJOR = 0
+    MINOR = 2
+    PATCH = 5
+
+    VERSION = [MAJOR, MINOR, PATCH].compact.join('.')
     class Error < RuntimeError; end
   end
 end
