@@ -81,6 +81,18 @@ Happening supports the simple S3 PUT upload:
         puts "Upload finished!"; EM.stop 
       end
     end
+
+If you have big files to upload `File.read` may block the reactor. So
+it´s useful to upload chunkwise. Just give Happening the file path
+instead of the data:
+
+    EM.run do
+      on_error = Proc.new {|http| puts "An error occured: #{http.response_header.status}"; EM.stop }
+      item = Happening::S3::Item.new('bucket', 'item_id', :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret', :on_success => on_success, :on_error => on_error)
+      item.put( :file => '/srv/very_big_video.mp4', :on_error => on_error ) do |response|
+        puts "Upload finished!"; EM.stop 
+      end
+    end 
     
 Setting permissions looks like this:
 
