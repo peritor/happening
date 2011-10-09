@@ -1,6 +1,6 @@
 require File.expand_path('../../test_helper', __FILE__)
 
-class ItemTest < Test::Unit::TestCase
+class RequestTest < Test::Unit::TestCase
   context "An Happening::S3::Request instance" do
     
     setup do
