@@ -43,11 +43,12 @@ class ItemTest < Test::Unit::TestCase
         Happening::S3::Request.new(:get, 'https://www.example.com').execute
       end
       
-      should "return the response" do
+      should "return the happening request object" do
         request = mock(:get => @response_stub)
         EventMachine::HttpRequest.expects(:new).with('https://www.example.com').returns(request)
-        resp = Happening::S3::Request.new(:get, 'https://www.example.com').execute
-        assert_equal resp, @response_stub
+        requ = Happening::S3::Request.new(:get, 'https://www.example.com')
+        return_value = requ.execute
+        assert_equal requ, return_value
       end
       
       should "pass the given headers and options" do

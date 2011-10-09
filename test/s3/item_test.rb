@@ -132,12 +132,12 @@ class ItemTest < Test::Unit::TestCase
         @item = Happening::S3::Item.new('bucket', 'the-key')
 
         EM.run do
-          response = @item.get
-          response.stream do |chunk|
+          request = @item.get
+          request.stream do |chunk|
             called = true
             data << chunk
           end
-          response.on_body_data "data-here"
+          request.response.on_body_data "data-here"
 
           EM.assertions do
             assert called

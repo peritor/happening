@@ -6,7 +6,7 @@ module Happening
       VALID_HTTP_METHODS = [:head, :get, :put, :delete]
       
       attr_accessor :http_method, :url, :options, :response
-      
+
       def initialize(http_method, url, options = {})
         @options = {
           :timeout => 10,
@@ -42,7 +42,15 @@ module Happening
 
         @response.errback { error_callback }
         @response.callback { success_callback }
-        @response
+        self
+      end
+
+      def stream &blk
+        @response.stream &blk
+      end
+
+      def headers &blk
+        @response.headers &blk
       end
       
       def http_class
