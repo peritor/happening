@@ -39,62 +39,62 @@ class ItemTest < Test::Unit::TestCase
       
       should "call em-http-request" do
         request = mock(:get => @response_stub)
-        EventMachine::MockHttpRequest.expects(:new).with('https://www.example.com').returns(request)
+        EventMachine::HttpRequest.expects(:new).with('https://www.example.com').returns(request)
         Happening::S3::Request.new(:get, 'https://www.example.com').execute
       end
       
       should "return the response" do
         request = mock(:get => @response_stub)
-        EventMachine::MockHttpRequest.expects(:new).with('https://www.example.com').returns(request)
+        EventMachine::HttpRequest.expects(:new).with('https://www.example.com').returns(request)
         resp = Happening::S3::Request.new(:get, 'https://www.example.com').execute
         assert_equal resp, @response_stub
       end
       
       should "pass the given headers and options" do
         request = mock('em-http-request')
-        request.expects(:get).with(:timeout => 10, :head => {'a' => 'b'}, :body => nil,  :ssl => {:verify_peer => false, :cert_chain_file => nil}).returns(@response_stub)
-        EventMachine::MockHttpRequest.expects(:new).with('https://www.example.com').returns(request)
+        request.expects(:get).with(:timeout => 10, :head => {'a' => 'b'}, :body => nil,
+          :ssl => {:verify_peer => false, :cert_chain_file => nil}).returns(@response_stub)
+        EventMachine::HttpRequest.expects(:new).with('https://www.example.com').returns(request)
         Happening::S3::Request.new(:get, 'https://www.example.com', :headers => {'a' => 'b'}).execute
       end
       
       should "post any given data" do
         request = mock('em-http-request')
-        request.expects(:put).with(:timeout => 10, :body => 'the-data', :head => {},  :ssl => {:verify_peer => false, :cert_chain_file => nil}).returns(@response_stub)
-        EventMachine::MockHttpRequest.expects(:new).with('https://www.example.com').returns(request)
+        request.expects(:put).with(:timeout => 10, :body => 'the-data', :head => {},
+          :ssl => {:verify_peer => false, :cert_chain_file => nil}).returns(@response_stub)
+        EventMachine::HttpRequest.expects(:new).with('https://www.example.com').returns(request)
         Happening::S3::Request.new(:put, 'https://www.example.com', :data => 'the-data').execute
       end
       
       should "pass SSL options to em-http-request" do
         request = mock('em-http-request')
-        request.expects(:put).with(:timeout => 10, :body => 'the-data', :head => {}, :ssl => {:verfiy_peer => true, :cert_chain_file => '/tmp/server.crt'}).returns(@response_stub)
-        EventMachine::MockHttpRequest.expects(:new).with('https://www.example.com').returns(request)
-        Happening::S3::Request.new(:put, 'https://www.example.com', :data => 'the-data', :ssl => {:verfiy_peer => true, :cert_chain_file => '/tmp/server.crt'}).execute
+        request.expects(:put).with(:timeout => 10, :body => 'the-data', :head => {},
+          :ssl => {:verfiy_peer => true, :cert_chain_file => '/tmp/server.crt'}).returns(@response_stub)        
+        EventMachine::HttpRequest.expects(:new).with('https://www.example.com').returns(request)
+        Happening::S3::Request.new(:put, 'https://www.example.com', :data => 'the-data',
+          :ssl => {:verfiy_peer => true, :cert_chain_file => '/tmp/server.crt'}).execute
       end
       
       context "when handling errors" do
         should "call the user error handler" do
-          EventMachine::MockHttpRequest.register('http://www.example.com:80/', :get, {}, error_response(400))
+          stub_request(:get, 'http://www.example.com:80/').to_return(error_response(400)).times(5)
 
           called = false
           on_error = Proc.new {|http| called = true}
 
-          run_in_em_loop do
+          EM.run do
             Happening::S3::Request.new(:get, 'http://www.example.com/', :on_error => on_error).execute
 
-            EM.add_timer(1) {
-              EM.stop_event_loop
+            EM.assertions do
               assert called
-              assert_equal 5, EventMachine::MockHttpRequest.count('http://www.example.com:80/', :get, {})
-            }
-
+            end
           end
         end
         
         should "use a default error handler if there is no user handler" do
-          EventMachine::MockHttpRequest.register('http://www.example.com:80/', :get, {}, error_response(400))
-
-          assert_raise(Happening::Error) do
-            run_in_em_loop do
+          stub_request(:get, 'http://www.example.com:80/').to_return(error_response(400))
+          assert_raise Happening::Error do
+            EM.run do
               Happening::S3::Request.new(:get, 'http://www.example.com/').execute
             end
           end
