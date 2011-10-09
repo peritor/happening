@@ -5,9 +5,10 @@ module Happening
       
       VALID_HTTP_METHODS = [:head, :get, :put, :delete]
       
-      attr_accessor :http_method, :url, :options, :response
+      attr_accessor :http_method, :url, :options, :response, :item
 
       def initialize(http_method, url, options = {})
+        @item = options.delete(:item)
         @options = {
           :timeout => 10,
           :retry_count => 4,

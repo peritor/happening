@@ -31,6 +31,14 @@ class ItemTest < Test::Unit::TestCase
         end
       end
     end
+
+    context "when instantiating" do
+      should "save the item given via options" do
+        item = Happening::S3::Item.new('bucket', 'object_id')
+        requ = Happening::S3::Request.new(:get, 'https://www.example.com', :item => item)
+        assert_equal item, requ.item
+      end
+    end
     
     context "when executing" do
       should "have no response before executing" do
