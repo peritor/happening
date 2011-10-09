@@ -137,7 +137,7 @@ class ItemTest < Test::Unit::TestCase
             called = true
             data << chunk
           end
-          request.response.on_body_data "data-here"
+          request.on_body_data "data-here"
 
           EM.assertions do
             assert called

@@ -32,6 +32,25 @@ class RequestTest < Test::Unit::TestCase
       end
     end
 
+    context "after executed" do
+      should "delegate to http class" do
+        stub_request(:get, "https://www.example.com/").
+          to_return(:status => 200, :body => "", :headers => {})
+        
+        EM.run do
+          requ = Happening::S3::Request.new(:get, 'https://www.example.com').execute
+
+          EM.assertions do
+            assert requ.respond_to?(:stream)
+            assert requ.respond_to?(:headers)
+            assert requ.respond_to?(:response)
+            assert requ.respond_to?(:response_header)
+            assert requ.respond_to?(:on_body_data)
+          end
+        end
+      end
+    end
+    
     context "when instantiating" do
       should "save the item given via options" do
         item = Happening::S3::Item.new('bucket', 'object_id')
@@ -118,9 +137,7 @@ class RequestTest < Test::Unit::TestCase
           EM.stop_event_loop if EM.reactor_running?
         end
         
-      end
-      
+      end  
     end
-        
   end
 end
