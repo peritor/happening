@@ -52,7 +52,7 @@ class ItemTest < Test::Unit::TestCase
       
       should "pass the given headers and options" do
         request = mock('em-http-request')
-        request.expects(:get).with(:timeout => 10, :head => {'a' => 'b'}, :body => nil,
+        request.expects(:get).with(:timeout => 10, :head => {'a' => 'b'},
           :ssl => {:verify_peer => false, :cert_chain_file => nil}).returns(@response_stub)
         EventMachine::HttpRequest.expects(:new).with('https://www.example.com').returns(request)
         Happening::S3::Request.new(:get, 'https://www.example.com', :headers => {'a' => 'b'}).execute
@@ -60,7 +60,7 @@ class ItemTest < Test::Unit::TestCase
       
       should "post any given data" do
         request = mock('em-http-request')
-        request.expects(:put).with(:timeout => 10, :body => 'the-data', :head => {},
+        request.expects(:put).with(:timeout => 10, :body => 'the-data',
           :ssl => {:verify_peer => false, :cert_chain_file => nil}).returns(@response_stub)
         EventMachine::HttpRequest.expects(:new).with('https://www.example.com').returns(request)
         Happening::S3::Request.new(:put, 'https://www.example.com', :data => 'the-data').execute
@@ -68,11 +68,19 @@ class ItemTest < Test::Unit::TestCase
       
       should "pass SSL options to em-http-request" do
         request = mock('em-http-request')
-        request.expects(:put).with(:timeout => 10, :body => 'the-data', :head => {},
+        request.expects(:put).with(:timeout => 10, :body => 'the-data',
           :ssl => {:verfiy_peer => true, :cert_chain_file => '/tmp/server.crt'}).returns(@response_stub)        
         EventMachine::HttpRequest.expects(:new).with('https://www.example.com').returns(request)
         Happening::S3::Request.new(:put, 'https://www.example.com', :data => 'the-data',
           :ssl => {:verfiy_peer => true, :cert_chain_file => '/tmp/server.crt'}).execute
+      end
+
+      should "pass file path option to stream big files" do
+        request = mock('em-http-request')
+        request.expects(:put).with(:timeout => 10, :file => "/test/path/to/file",
+          :ssl => {:verify_peer => false, :cert_chain_file => nil}).returns(@response_stub)
+        EventMachine::HttpRequest.expects(:new).with('https://www.example.com').returns(request)
+        Happening::S3::Request.new(:put, 'https://www.example.com', :file => "/test/path/to/file").execute        
       end
       
       context "when handling errors" do
