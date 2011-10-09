@@ -7,8 +7,8 @@ module Happening
       include Utils
     
       REQUIRED_FIELDS = [:server]
-      VALID_HEADERS = ['Cache-Control', 'Content-Disposition', 'Content-Encoding', 'Content-Length', 'Content-MD5', 'Content-Type', 'Expect', 'Expires']
-
+      VALID_HEADERS = ['Cache-Control', 'Content-Disposition', 'Content-Encoding',
+        'Content-Length', 'Content-MD5', 'Content-Type', 'Expect', 'Expires']
       
       attr_accessor :bucket, :aws_id, :options
 
@@ -23,7 +23,8 @@ module Happening
           :permissions => 'private',
           :ssl => Happening::S3.ssl_options
         }.update(symbolize_keys(options))
-        assert_valid_keys(options, :timeout, :server, :protocol, :aws_access_key_id, :aws_secret_access_key, :retry_count, :permissions, :ssl)
+        assert_valid_keys(options, :timeout, :server, :protocol, :aws_access_key_id,
+          :aws_secret_access_key, :retry_count, :permissions, :ssl)
         @aws_id = aws_id.to_s
         @bucket = bucket.to_s
       
@@ -119,7 +120,7 @@ module Happening
       
       def construct_aws_headers(http_method, headers = {})
         unless headers.keys.all?{|header| VALID_HEADERS.include?(header) || header.to_s.match(/\Ax-amz-/) }
-          raise ArgumentError, "invalid headers. All headers must either one of #{VALID_HEADERS} or start with 'x-amz-'" 
+          raise ArgumentError, "invalid headers. All headers must either one of #{VALID_HEADERS} or start with 'x-amz-'"
         end
         
         permissions = options[:permissions] != 'private' ? {'x-amz-acl' => options[:permissions] } : {}
