@@ -8,7 +8,8 @@ module Happening
     
       REQUIRED_FIELDS = [:server]
       VALID_HEADERS = ['Cache-Control', 'Content-Disposition', 'Content-Encoding', 'Content-Length', 'Content-MD5', 'Content-Type', 'Expect', 'Expires']
-    
+
+      
       attr_accessor :bucket, :aws_id, :options
 
       def initialize(bucket, aws_id, options = {})
@@ -43,10 +44,23 @@ module Happening
         Happening::S3::Request.new(:get, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
       
-      def put(data, request_options = {}, &blk)
+      def put(desc = nil, request_options = {}, &blk)
         headers = construct_aws_headers('PUT', request_options.delete(:headers) || {})
+
+        # we let the desc be a hash so we can allow execution of put('data', options) 
+        # and put(options), the latter will give us the feature of clean putting only
+        # with the options ":file"
+        if desc.is_a?(Hash)
+          request_options = desc
+        else
+          request_options.update(:data => desc) if request_options[:file].nil?
+        end
+        if request_options[:file].nil? and request_options[:data].nil?
+          raise ArgumentError, "Neither data given, nor file for streaming specified."
+        end
+        
         request_options[:on_success] = blk if blk
-        request_options.update(:headers => headers, :data => data)
+        request_options.update(:headers => headers)
         Happening::S3::Request.new(:put, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
       

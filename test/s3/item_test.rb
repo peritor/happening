@@ -492,6 +492,59 @@ class ItemTest < Test::Unit::TestCase
         end
       end
 
+      should "raise an error when no data or file was specified" do
+        @item = Happening::S3::Item.new('bucket', 'the-key',
+          :aws_access_key_id => 'abc',
+          :aws_secret_access_key => '123')
+
+        assert_raise ArgumentError do
+          EM.run do
+            @item.put
+          end
+        end
+        EM.stop_event_loop if EM.reactor_running?
+      end
+
+      should "pass file to request" do
+        request = mock('em-http-request')
+        request.expects(:execute)
+        Happening::S3::Request.expects(:new).with(:put, 'https://bucket.s3.amazonaws.com:443/the-key',
+          :file => '/test/path/to/file',
+          :headers => {
+            'Authorization' => 'AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=',
+            'url' => '/bucket/the-key',
+            'date' => 'Thu, 25 Feb 2010 10:00:00 GMT'},
+          :ssl => {
+            :verify_peer => true,
+            :cert_chain_file => '/etc/foo.ca'}).returns(request)
+        
+        @item = Happening::S3::Item.new('bucket', 'the-key',
+          :aws_access_key_id => 'abc',
+          :aws_secret_access_key => '123')
+
+        @item.put :file => '/test/path/to/file'
+      end
+
+      should "ignore data if file was given" do
+        request = mock('em-http-request')
+        request.expects(:execute)
+        Happening::S3::Request.expects(:new).with(:put, 'https://bucket.s3.amazonaws.com:443/the-key',
+          :file => '/test/path/to/file',
+          :headers => {
+            'Authorization' => 'AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=',
+            'url' => '/bucket/the-key',
+            'date' => 'Thu, 25 Feb 2010 10:00:00 GMT'},
+          :ssl => {
+            :verify_peer => true,
+            :cert_chain_file => '/etc/foo.ca'}).returns(request)
+        
+        @item = Happening::S3::Item.new('bucket', 'the-key',
+          :aws_access_key_id => 'abc',
+          :aws_secret_access_key => '123')
+
+        @item.put 'data that will be ignored', :file => '/test/path/to/file'  
+      end
+      
     end
 
     context "SSL options" do
@@ -532,7 +585,9 @@ class ItemTest < Test::Unit::TestCase
       end
 
       should "allow to override the options per request" do
-        item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
+        item = Happening::S3::Item.new('bucket', 'the-key',
+          :aws_access_key_id => 'abc',
+          :aws_secret_access_key => '123')
         Happening::S3::Request.expects(:new).with(:get, anything, {
             :ssl => {:foo => :bar},
             :headers => {
