@@ -40,6 +40,17 @@ class ItemTest < Test::Unit::TestCase
         item = Happening::S3::Item.new('bucket', 'object-id', :timeout => 5)
         assert_equal 5, item.options[:timeout]
       end
+
+      should "use default credentials when set" do
+        Happening::AWS.set_defaults({
+            :aws_access_key_id => 'key-id',
+            :aws_secret_access_key => 'secret'
+          })
+        item = Happening::S3::Item.new('bucket','object-id')
+        assert_equal 'key-id', item.options[:aws_access_key_id]
+        assert_equal 'secret', item.options[:aws_secret_access_key]
+        Happening::AWS.set_defaults({})
+      end
     end
     
     context "validation" do
