@@ -15,10 +15,37 @@ class ItemTest < Test::Unit::TestCase
       #stub(:utc_httpdate => @time, :to_i => 99, :usec => 88))
     end
 
+    context "initialization" do
+      should "override credential defaults when given" do
+        Happening::AWS.set_defaults({
+            :aws_access_key_id => 'id',
+            :aws_secret_access_key => 'secret'
+          })
+        item = Happening::S3::Item.new('bucket', 'object-id',
+          :aws_access_key_id => 'id2',
+          :aws_secret_access_key => 'key2')
+        assert_equal 'id2', item.options[:aws_access_key_id]
+        assert_equal 'key2', item.options[:aws_secret_access_key]
+        Happening::AWS.set_defaults({})
+      end
+
+      should "override the bucket default when given" do
+        Happening::AWS.set_defaults({ :bucket => 'bucket' })
+        item = Happening::S3::Item.new('special-bucket', 'the-key')
+        assert_equal 'special-bucket', item.bucket
+        Happening::AWS.set_defaults({})
+      end
+
+      should "take options hash" do
+        item = Happening::S3::Item.new('bucket', 'object-id', :timeout => 5)
+        assert_equal 5, item.options[:timeout]
+      end
+    end
+    
     context "validation" do
       should "require a key" do
         assert_raise(ArgumentError) do
-          item = Happening::S3::Item.new()
+          item = Happening::S3::Item.new
         end
 
         assert_nothing_raised(ArgumentError) do
@@ -26,16 +53,24 @@ class ItemTest < Test::Unit::TestCase
         end
       end
 
+      should "pass without the need for bucket parameter if set in defaults" do
+        Happening::AWS.set_defaults({ :bucket => 'bucket' })
+        item = nil
+        assert_nothing_raised do
+          item = Happening::S3::Item.new('the-key')
+        end
+        assert_equal Happening::AWS.defaults[:bucket], item.bucket
+        Happening::AWS.set_defaults({})
+      end
+
       should "require a bucket if not set in defaults" do
         assert_raise(ArgumentError) do
           item = Happening::S3::Item.new('the-key')
         end
 
-        
-        
-        #assert_nothing_raised(ArgumentError) do
-        #  item = Happening::S3::Item.new('the-key')
-        #end        
+        assert_nothing_raised(ArgumentError) do
+          item = Happening::S3::Item.new('bucket', 'the-key')
+        end
       end
 
       should "not allow unknown options" do
@@ -89,7 +124,6 @@ class ItemTest < Test::Unit::TestCase
     end
 
     context "when getting an item" do
-
       should "call the on success callback" do
         stub_request(:get, 'https://bucket.s3.amazonaws.com:443/the-key').to_return(fake_response("data-here"))
 
