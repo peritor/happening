@@ -135,6 +135,21 @@ class ItemTest < Test::Unit::TestCase
     end
 
     context "when getting an item" do
+      context "request" do
+        should "link to the item" do
+          stub_request(:get, "https://bucket.s3.amazonaws.com/object-id").
+            to_return(:status => 200, :body => "", :headers => {})
+          item = Happening::S3::Item.new('bucket', 'object-id')
+          EM.run do
+            request = item.get
+
+            EM.assertions do
+              assert_equal item, request.item
+            end
+          end
+        end
+      end
+      
       should "call the on success callback" do
         stub_request(:get, 'https://bucket.s3.amazonaws.com:443/the-key').to_return(fake_response("data-here"))
 
@@ -151,7 +166,7 @@ class ItemTest < Test::Unit::TestCase
             assert_equal "data-here\n", data
             assert_requested :get, 'https://bucket.s3.amazonaws.com:443/the-key', :times => 1
           end
-        end        
+        end
       end
 
       should "support direct blocks" do
@@ -225,7 +240,7 @@ class ItemTest < Test::Unit::TestCase
 
         @item = Happening::S3::Item.new('bucket', 'the-key')
         EM.run do
-          @item.get(:on_error => Proc.new{} ) #ignore error
+          @item.get(:on_error => Proc.new{}) #ignore error
 
           EM.assertions do
             assert_requested :get, 'https://bucket.s3.amazonaws.com:443/the-key', :times => 5
@@ -253,6 +268,21 @@ class ItemTest < Test::Unit::TestCase
     end
 
     context "when deleting an item" do
+      context "request" do
+        should "link to the item" do
+          stub_request(:delete, "https://bucket.s3.amazonaws.com/object-id").
+            to_return(:status => 200, :body => "", :headers => {})
+          item = Happening::S3::Item.new('bucket', 'object-id')
+          EM.run do
+            request = item.delete
+
+            EM.assertions do
+              assert_equal item, request.item
+            end
+          end
+        end
+      end
+
       should "send a DELETE to the items location" do
         stub_request(:delete, 'https://bucket.s3.amazonaws.com:443/the-key').
           with(:headers => {
@@ -349,10 +379,24 @@ class ItemTest < Test::Unit::TestCase
     end
 
     context "when loading the headers" do
+      context "request" do
+        should "link to the item" do
+          stub_request(:head, "https://bucket.s3.amazonaws.com/object-id").
+            to_return(:status => 200, :body => "", :headers => {})
+          item = Happening::S3::Item.new('bucket', 'object-id')
+          EM.run do
+            request = item.head
+            
+            EM.assertions do
+              assert_equal item, request.item
+            end
+          end
+        end
+      end
+
       should "request via HEAD" do
         stub_request(:head, 'https://bucket.s3.amazonaws.com:443/the-key').
           to_return(fake_response('hy there')).times(1)
-
         @item = Happening::S3::Item.new('bucket', 'the-key')
         EM.run do
           @item.head
@@ -365,6 +409,21 @@ class ItemTest < Test::Unit::TestCase
     end
 
     context "when saving an item" do
+      context "request" do
+        should "link to the item" do
+          stub_request(:put, "https://bucket.s3.amazonaws.com/object-id").
+            with(:headers => {'Url'=>'/bucket/object-id'}).
+            to_return(:status => 200, :body => "", :headers => {})
+          item = Happening::S3::Item.new('bucket', 'object-id')
+          EM.run do
+            request = item.put(:file => 'bla')
+
+            EM.assertions do
+              assert_equal item, request.item
+            end
+          end
+        end
+      end
 
       should "post to the desired location" do
         stub_request(:put, 'https://bucket.s3.amazonaws.com:443/the-key').
@@ -558,9 +617,14 @@ class ItemTest < Test::Unit::TestCase
       end
 
       should "pass file to request" do
+        item = Happening::S3::Item.new('bucket', 'the-key',
+          :aws_access_key_id => 'abc',
+          :aws_secret_access_key => '123')
+
         request = mock('em-http-request')
         request.expects(:execute)
         Happening::S3::Request.expects(:new).with(:put, 'https://bucket.s3.amazonaws.com:443/the-key',
+          :item => item,
           :file => '/test/path/to/file',
           :headers => {
             'Authorization' => 'AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=',
@@ -570,17 +634,18 @@ class ItemTest < Test::Unit::TestCase
             :verify_peer => true,
             :cert_chain_file => '/etc/foo.ca'}).returns(request)
         
-        @item = Happening::S3::Item.new('bucket', 'the-key',
-          :aws_access_key_id => 'abc',
-          :aws_secret_access_key => '123')
-
-        @item.put :file => '/test/path/to/file'
+        item.put :file => '/test/path/to/file'
       end
 
       should "ignore data if file was given" do
+        item = Happening::S3::Item.new('bucket', 'the-key',
+          :aws_access_key_id => 'abc',
+          :aws_secret_access_key => '123')
+
         request = mock('em-http-request')
         request.expects(:execute)
         Happening::S3::Request.expects(:new).with(:put, 'https://bucket.s3.amazonaws.com:443/the-key',
+          :item => item,
           :file => '/test/path/to/file',
           :headers => {
             'Authorization' => 'AWS abc:lZMKxGDKcQ1PH8yjbpyN7o2sPWg=',
@@ -590,11 +655,7 @@ class ItemTest < Test::Unit::TestCase
             :verify_peer => true,
             :cert_chain_file => '/etc/foo.ca'}).returns(request)
         
-        @item = Happening::S3::Item.new('bucket', 'the-key',
-          :aws_access_key_id => 'abc',
-          :aws_secret_access_key => '123')
-
-        @item.put 'data that will be ignored', :file => '/test/path/to/file'  
+        item.put 'data that will be ignored', :file => '/test/path/to/file'  
       end
       
     end
@@ -629,6 +690,7 @@ class ItemTest < Test::Unit::TestCase
           :aws_secret_access_key => '123')
         Happening::S3::Request.expects(:new).with(:get, anything, {
             :ssl => {:cert_chain_file => '/etc/foo.ca', :verify_peer => true},
+            :item => item,
             :headers => {
               'Authorization' => 'AWS abc:LGLdCdGTuLAHs+InbMWEnQR6djc=',
               'date' => 'Thu, 25 Feb 2010 10:00:00 GMT'}}).returns(stub(:execute => nil))
@@ -642,6 +704,7 @@ class ItemTest < Test::Unit::TestCase
           :aws_secret_access_key => '123')
         Happening::S3::Request.expects(:new).with(:get, anything, {
             :ssl => {:foo => :bar},
+            :item => item,
             :headers => {
               'Authorization' => 'AWS abc:LGLdCdGTuLAHs+InbMWEnQR6djc=',
               'date' => 'Thu, 25 Feb 2010 10:00:00 GMT'}}).returns(stub(:execute => nil))

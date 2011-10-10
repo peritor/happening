@@ -54,14 +54,14 @@ module Happening
       def head(request_options = {}, &blk)
         headers = needs_to_sign? ? aws.sign("HEAD", path) : {}
         request_options[:on_success] = blk if blk
-        request_options.update(:headers => headers)
+        request_options.update(:headers => headers, :item => self)
         Happening::S3::Request.new(:head, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
 
       def get(request_options = {}, &blk)
         headers = needs_to_sign? ? aws.sign("GET", path) : {}
         request_options[:on_success] = blk if blk
-        request_options.update(:headers => headers)
+        request_options.update(:headers => headers, :item => self)
         Happening::S3::Request.new(:get, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
       
@@ -81,14 +81,14 @@ module Happening
         end
         
         request_options[:on_success] = blk if blk
-        request_options.update(:headers => headers)
+        request_options.update(:headers => headers, :item => self)
         Happening::S3::Request.new(:put, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
       
       def delete(request_options = {}, &blk)
         headers = needs_to_sign? ? aws.sign("DELETE", path, {'url' => path}) : {}
         request_options[:on_success] = blk if blk
-        request_options.update(:headers => headers)
+        request_options.update(:headers => headers, :item => self)
         Happening::S3::Request.new(:delete, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
     
