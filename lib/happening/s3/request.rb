@@ -17,6 +17,7 @@ module Happening
           :headers => {},
           :on_error => nil,
           :on_success => nil,
+          :on_retry => nil,
           :data => nil,
           :file => nil,
           :ssl => {
@@ -24,7 +25,7 @@ module Happening
             :verify_peer => false
           }
         }.update(options)
-        assert_valid_keys(options, :timeout, :on_success, :on_error, :retry_count, :headers, :data, :file, :ssl)
+        assert_valid_keys(options, :timeout, :on_success, :on_error, :on_retry, :retry_count, :headers, :data, :file, :ssl)
         @http_method = http_method
         @url = url
         
@@ -58,6 +59,10 @@ module Happening
 
       def on_error &blk
         options[:on_error] = blk
+      end
+
+      def on_retry &blk
+        options[:on_retry] = blk
       end
       
       ##
@@ -128,12 +133,17 @@ module Happening
         options[:on_error].call(self) if options[:on_error].respond_to?(:call)
       end
       
+      def call_user_retry_handler
+        options[:on_retry].call(self) if options[:on_retry].respond_to?(:call)
+      end
+      
       def should_retry?
         options[:retry_count] > 0
       end
       
       def handle_retry
         if should_retry?
+          call_user_retry_handler
           new_request = self.class.new(http_method, url, options.update(:retry_count => options[:retry_count] - 1 ))
           new_request.execute
         else

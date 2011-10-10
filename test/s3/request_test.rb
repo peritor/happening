@@ -61,14 +61,13 @@ class RequestTest < Test::Unit::TestCase
 
     context "when instantiated" do
       should "take success block" do
-        stub_request(:get, "https://bucket.s3.amazonaws.com/object-id").
-          to_return(fake_response("my body"))
+        stub_request(:get, "http://www.example.com").to_return(fake_response("my body"))
         
         called = false
         body = nil
         
         EM.run do
-          request = Happening::S3::Item.new('bucket', 'object-id').get
+          request = Happening::S3::Request.new(:get, "http://www.example.com").execute
           request.on_success do |download|
             called = true
             body = download.response
@@ -82,19 +81,36 @@ class RequestTest < Test::Unit::TestCase
       end
 
       should "take error block" do
-        stub_request(:get, "https://bucket.s3.amazonaws.com/object-id").
-          to_return(error_response(400))
+        stub_request(:get, "http://www.example.com").to_return(error_response(400))
         
         called = false
         
         EM.run do
-          request = Happening::S3::Item.new('bucket', 'object-id').get
+          request = Happening::S3::Request.new(:get, "http://www.example.com").execute
           request.on_error do |download|
             called = true
           end
 
           EM.assertions do
             assert called
+          end
+        end
+      end
+
+      should "take retry block" do
+        stub_request(:get, "http://www.example.com").to_return(error_response(400)).times(5)
+        
+        called = 1
+        
+        EM.run do
+          request = Happening::S3::Request.new(:get, "http://www.example.com").execute
+          request.on_retry do |request|
+            called += 1
+          end
+          request.on_error {} # ignore error, only count retries
+
+          EM.assertions do
+            assert_equal 5, called
           end
         end
       end
@@ -154,16 +170,36 @@ class RequestTest < Test::Unit::TestCase
       
       context "when handling errors" do
         should "call the user error handler" do
-          stub_request(:get, 'http://www.example.com:80/').to_return(error_response(400)).times(5)
+          stub_request(:get, 'http://www.example.com:80/').to_return(error_response(400)).times(1)
 
           called = false
           on_error = Proc.new {|http| called = true}
 
           EM.run do
-            Happening::S3::Request.new(:get, 'http://www.example.com/', :on_error => on_error).execute
+            Happening::S3::Request.new(:get, 'http://www.example.com/',
+              :on_error => on_error,
+              :retry_count => 0).execute
 
             EM.assertions do
               assert called
+              assert_requested :get, 'http://www.example.com:80/', :times => 1
+            end
+          end
+        end
+
+        should "call retry callback" do
+          stub_request(:get, 'http://www.example.com:80/').to_return(error_response(400)).times(5)
+
+          called = 1
+
+          EM.run do
+            Happening::S3::Request.new(:get, 'http://www.example.com/',
+              :on_retry => Proc.new { |http| called += 1 },
+              :on_error => Proc.new { }).execute
+            
+            EM.assertions do
+              assert_equal 5, called
+              assert_requested :get, 'http://www.example.com:80/', :times => 5
             end
           end
         end
