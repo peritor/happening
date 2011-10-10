@@ -8,11 +8,31 @@ module Happening
     DIGEST = OpenSSL::Digest.new('sha1')
     
     attr_accessor :aws_access_key_id, :aws_secret_access_key
+
+    class << self
+
+      def defaults
+        @_defaults ||= {}
+      end
+      
+      def set_defaults options
+        @_defaults = options
+      end
+
+      def credentials_set?
+        defaults[:aws_access_key_id] and defaults[:aws_secret_access_key]
+      end
+
+      def bucket_set?
+        defaults[:bucket]
+      end
+
+    end
     
-    def initialize(aws_access_key_id, aws_secret_access_key)
-      @aws_access_key_id = aws_access_key_id
-      @aws_secret_access_key = aws_secret_access_key
-      raise ArgumentError, "need AWS Access Key Id and AWS Secret Key" if blank?(aws_access_key_id) || blank?(aws_secret_access_key)
+    def initialize(aws_access_key_id = nil, aws_secret_access_key = nil)
+      @aws_access_key_id = aws_access_key_id || Happening::AWS.defaults[:aws_access_key_id]
+      @aws_secret_access_key = aws_secret_access_key || Happening::AWS.defaults[:aws_secret_access_key]
+      raise ArgumentError, "need AWS Access Key Id and AWS Secret Key" if blank?(@aws_access_key_id) || blank?(@aws_secret_access_key)
     end
     
     def sign(method, path, headers={})

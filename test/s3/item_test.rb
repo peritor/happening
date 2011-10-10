@@ -16,19 +16,26 @@ class ItemTest < Test::Unit::TestCase
     end
 
     context "validation" do
-      should "require a bucket and a key" do
+      should "require a key" do
         assert_raise(ArgumentError) do
           item = Happening::S3::Item.new()
-        end
-
-        assert_raise(ArgumentError) do
-          item = Happening::S3::Item.new('the-key')
         end
 
         assert_nothing_raised(ArgumentError) do
           item = Happening::S3::Item.new('the-bucket', 'the-key')
         end
+      end
 
+      should "require a bucket if not set in defaults" do
+        assert_raise(ArgumentError) do
+          item = Happening::S3::Item.new('the-key')
+        end
+
+        
+        
+        #assert_nothing_raised(ArgumentError) do
+        #  item = Happening::S3::Item.new('the-key')
+        #end        
       end
 
       should "not allow unknown options" do
