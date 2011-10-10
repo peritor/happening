@@ -52,6 +52,14 @@ module Happening
         EventMachine::HttpRequest
       end
 
+      def on_success &blk
+        options[:on_success] = blk
+      end
+
+      def on_error &blk
+        options[:on_error] = blk
+      end
+      
       ##
       # Handle delegation to em-http-request
       ##

@@ -58,6 +58,47 @@ class RequestTest < Test::Unit::TestCase
         assert_equal item, requ.item
       end
     end
+
+    context "when instantiated" do
+      should "take success block" do
+        stub_request(:get, "https://bucket.s3.amazonaws.com/object-id").
+          to_return(fake_response("my body"))
+        
+        called = false
+        body = nil
+        
+        EM.run do
+          request = Happening::S3::Item.new('bucket', 'object-id').get
+          request.on_success do |download|
+            called = true
+            body = download.response
+          end
+
+          EM.assertions do
+            assert called
+            assert_equal "my body\n", body
+          end
+        end
+      end
+
+      should "take error block" do
+        stub_request(:get, "https://bucket.s3.amazonaws.com/object-id").
+          to_return(error_response(400))
+        
+        called = false
+        
+        EM.run do
+          request = Happening::S3::Item.new('bucket', 'object-id').get
+          request.on_error do |download|
+            called = true
+          end
+
+          EM.assertions do
+            assert called
+          end
+        end
+      end
+    end
     
     context "when executing" do
       should "have no response before executing" do
@@ -137,7 +178,7 @@ class RequestTest < Test::Unit::TestCase
           EM.stop_event_loop if EM.reactor_running?
         end
         
-      end  
+      end
     end
   end
 end
