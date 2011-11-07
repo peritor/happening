@@ -11,6 +11,7 @@ unless defined?(Happening)
   require File.expand_path(File.dirname(__FILE__) + '/happening/s3')
   require File.expand_path(File.dirname(__FILE__) + '/happening/s3/request')
   require File.expand_path(File.dirname(__FILE__) + '/happening/s3/item')
+  require File.expand_path(File.dirname(__FILE__) + '/happening/s3/bucket')
 
   module Happening
     MAJOR = 0
