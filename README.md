@@ -187,7 +187,7 @@ The AWS signing and canonical request description is based on [RightAws](http://
 License
 =============
 
-Happening is licensed under the OpenBSD / two-clause BSD license, modeled after the ISC license. See LICENSE.txt
+Happening is licensed under the Apache 2.0 license. See LICENSE.txt
 
 
 About
