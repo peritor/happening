@@ -22,7 +22,7 @@ module Happening
           :permissions => 'private',
           :ssl => Happening::S3.ssl_options
         }.update(symbolize_keys(options))
-        assert_valid_keys(options, :timeout, :server, :protocol, :aws_access_key_id, :aws_secret_access_key, :retry_count, :permissions, :ssl)
+        assert_valid_keys(options, :timeout, :server, :port, :protocol, :aws_access_key_id, :aws_secret_access_key, :retry_count, :permissions, :ssl)
         @aws_id = aws_id.to_s
         @bucket = bucket.to_s
       
@@ -58,10 +58,12 @@ module Happening
       end
     
       def url
-        URI::Generic.new(options[:protocol], nil, server, port, nil, path(!dns_bucket?), nil, nil, nil).to_s
+        uri = options[:port] ? path : path(!dns_bucket?)
+        URI::Generic.new(options[:protocol], nil, server, port, nil, uri, nil, nil, nil).to_s
       end
       
       def server
+        return options[:server] if options[:port]
         dns_bucket? ? "#{bucket}.#{options[:server]}" : options[:server]
       end
       
@@ -85,7 +87,7 @@ module Happening
       end
     
       def port
-        (options[:protocol].to_s == 'https') ? 443 : 80
+        options[:port] || (options[:protocol].to_s == 'https' ? 443 : 80)
       end
     
       def validate
