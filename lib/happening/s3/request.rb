@@ -3,7 +3,7 @@ module Happening
     class Request
       include Utils
       
-      VALID_HTTP_METHODS = [:head, :get, :put, :delete]
+      VALID_HTTP_METHODS = [:head, :get, :aget, :put, :delete]
       
       attr_accessor :http_method, :url, :options, :response
       
