@@ -49,6 +49,13 @@ module Happening
         request_options.update(:headers => headers, :data => data)
         Happening::S3::Request.new(:put, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
+
+      def store(file_path, request_options = {}, &blk)
+        headers = construct_aws_headers('PUT', request_options.delete(:headers) || {})
+        request_options[:on_success] = blk if blk
+        request_options.update(:headers => headers, :file => file_path)
+        Happening::S3::Request.new(:put, url, {:ssl => options[:ssl]}.update(request_options)).execute
+      end
       
       def delete(request_options = {}, &blk)
         headers = needs_to_sign? ? aws.sign("DELETE", path, {'url' => path}) : {}
