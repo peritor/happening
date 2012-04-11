@@ -8,6 +8,9 @@ Alternatives like RightAws block during the HTTP calls thus blocking the Nanite-
 For now it only supports GET, PUT and DELETE operations on S3 items. The PUT operations support S3 ACLs/permissions.
 Happening will handle redirects and retries on errors by default.
 
+Happening also supports other S3 compatible APIs, like Eucalyptus Walrus and Nimbus Cumulus. See instructions below
+for more details.
+
 Installation
 ============
 
@@ -176,6 +179,28 @@ Or even on the request:
     item.get(:ssl => {:cert_chain_file => '/etc/ca-bundle.crt'})
     
 The SSL options are directly passed to EventMachine, see the [EventMachine documentation](http://eventmachine.rubyforge.org/EventMachine/Connection.html#M000296) for more information on the SSL support.
+
+
+Walrus
+=============
+
+Happening also supports interacting with Walrus storage from the Eucalyptus cloud. The only difference is in the Item
+initialization. Here you should prepend the bucket name with the 'services/Walrus/' string, as this is the base path
+used by the Walrus API and should be signed allong with the bucket name. You should specify the host address and port
+where Walrus listens for incoming requests too.
+
+     Happening::S3::Item.new('services/Walrus/bucket', 'item_id', :server => 'Walrus address', :port => 8773, :protocol => 'http',
+        :aws_access_key_id => 'Walrus ID', :aws_secret_access_key => 'Walrus secret')
+
+
+Cumulus
+=============
+
+Happening also supports interacting with Cumulus storage from the Nimbus cloud. The only difference is in the Item
+initialization, where you should specify the host address and port where Cumulus listens for incoming requests.
+
+     Happening::S3::Item.new('bucket', 'item_id', :server => 'cumulus address', :port => 8888, :protocol => 'http',
+        :aws_access_key_id => 'cumulus ID', :aws_secret_access_key => 'cumulus secret')
 
 
 Credits
