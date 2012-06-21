@@ -151,7 +151,29 @@ The response data can also be streamed:
 	    # .. handle the individual chunk          
 	  end
     end
-    
+
+Bucket Listing
+=============
+
+You can retreive a list of the contents of a bucket:
+
+    EM.run do
+      bucket = Happening::S3::Bucket.new( 'bucket', :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret')
+      bucket.get do |response|
+        puts response.response
+      end
+    end
+
+The listing is in XML, you will need to parse it yourself.
+
+To limit the bucket list keys with a certain prefix:
+
+    EM.run do
+      bucket = Happening::S3::Bucket.new( 'bucket', :aws_access_key_id => 'Your-ID', :aws_secret_access_key => 'secret', :prefix => "foo")
+      bucket.get do |response|
+        puts response.response
+      end
+    end
 
 SSL Support
 =============
