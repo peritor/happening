@@ -7,22 +7,44 @@ module Happening
       include Utils
     
       REQUIRED_FIELDS = [:server]
-      VALID_HEADERS = ['Cache-Control', 'Content-Disposition', 'Content-Encoding', 'Content-Length', 'Content-MD5', 'Content-Type', 'Expect', 'Expires']
-    
+      VALID_HEADERS = ['Cache-Control', 'Content-Disposition', 'Content-Encoding',
+        'Content-Length', 'Content-MD5', 'Content-Type', 'Expect', 'Expires']
+      
       attr_accessor :bucket, :aws_id, :options
 
-      def initialize(bucket, aws_id, options = {})
+      def initialize(*args)
+        options = {}
+        bucket = nil
+        aws_id = nil
+        
+        # We handle the arguments array manually to allow calls like:
+        # Item.new('bucket', 'object-id') 
+        # Item.new('object-id')
+        options = args.pop if args.last.is_a?(Hash)
+        if args.length > 1
+          bucket = args[0]
+          aws_id = args[1]
+        elsif args.length == 1
+          if Happening::AWS.bucket_set?
+            bucket = Happening::AWS.defaults[:bucket]
+            aws_id = args[0]
+          end
+        end
+        
         @options = {
           :timeout => 10,
           :server => 's3.amazonaws.com',
           :protocol => 'https',
-          :aws_access_key_id => nil,
-          :aws_secret_access_key => nil,
+          :aws_access_key_id => Happening::AWS.defaults[:aws_access_key_id],
+          :aws_secret_access_key => Happening::AWS.defaults[:aws_secret_access_key],
           :retry_count => 4,
           :permissions => 'private',
           :ssl => Happening::S3.ssl_options
         }.update(symbolize_keys(options))
-        assert_valid_keys(options, :timeout, :server, :protocol, :aws_access_key_id, :aws_secret_access_key, :retry_count, :permissions, :ssl)
+        
+        assert_valid_keys(options, :timeout, :server, :protocol, :aws_access_key_id,
+          :aws_secret_access_key, :retry_count, :permissions, :ssl)
+        
         @aws_id = aws_id.to_s
         @bucket = bucket.to_s
       
@@ -32,28 +54,41 @@ module Happening
       def head(request_options = {}, &blk)
         headers = needs_to_sign? ? aws.sign("HEAD", path) : {}
         request_options[:on_success] = blk if blk
-        request_options.update(:headers => headers)
+        request_options.update(:headers => headers, :item => self)
         Happening::S3::Request.new(:head, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
 
       def get(request_options = {}, &blk)
         headers = needs_to_sign? ? aws.sign("GET", path) : {}
         request_options[:on_success] = blk if blk
-        request_options.update(:headers => headers)
+        request_options.update(:headers => headers, :item => self)
         Happening::S3::Request.new(:get, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
       
-      def put(data, request_options = {}, &blk)
+      def put(desc = nil, request_options = {}, &blk)
         headers = construct_aws_headers('PUT', request_options.delete(:headers) || {})
+
+        # we let the desc be a hash so we can allow execution of put('data', options) 
+        # and put(options), the latter will give us the feature of clean putting only
+        # with the options ":file"
+        if desc.is_a?(Hash)
+          request_options = desc
+        else
+          request_options.update(:data => desc) if request_options[:file].nil?
+        end
+        if request_options[:file].nil? and request_options[:data].nil?
+          raise ArgumentError, "Neither data given, nor file for streaming specified."
+        end
+        
         request_options[:on_success] = blk if blk
-        request_options.update(:headers => headers, :data => data)
+        request_options.update(:headers => headers, :item => self)
         Happening::S3::Request.new(:put, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
       
       def delete(request_options = {}, &blk)
         headers = needs_to_sign? ? aws.sign("DELETE", path, {'url' => path}) : {}
         request_options[:on_success] = blk if blk
-        request_options.update(:headers => headers)
+        request_options.update(:headers => headers, :item => self)
         Happening::S3::Request.new(:delete, url, {:ssl => options[:ssl]}.update(request_options)).execute
       end
     
@@ -96,7 +131,7 @@ module Happening
           raise ArgumentError, "need field #{field}" unless present?(options[field])
         end
       
-        raise ArgumentError, "unknown protocoll #{options[:protocol]}" unless ['http', 'https'].include?(options[:protocol])
+        raise ArgumentError, "unknown protocol #{options[:protocol]}" unless ['http', 'https'].include?(options[:protocol])
       end
       
       def aws
@@ -105,7 +140,7 @@ module Happening
       
       def construct_aws_headers(http_method, headers = {})
         unless headers.keys.all?{|header| VALID_HEADERS.include?(header) || header.to_s.match(/\Ax-amz-/) }
-          raise ArgumentError, "invalid headers. All headers must either one of #{VALID_HEADERS} or start with 'x-amz-'" 
+          raise ArgumentError, "invalid headers. All headers must either one of #{VALID_HEADERS} or start with 'x-amz-'"
         end
         
         permissions = options[:permissions] != 'private' ? {'x-amz-acl' => options[:permissions] } : {}
