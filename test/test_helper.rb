@@ -8,7 +8,7 @@ $:.unshift(File.dirname(__FILE__) + "/../")
 
 require 'happening'
 
-require 'em-http/mock'
+require 'webmock/test_unit'
 
 EventMachine.instance_eval do
   # Switching out EM's defer since it makes tests just a tad more unreliable
@@ -20,26 +20,10 @@ end unless EM.respond_to?(:defer_original)
 
 class Test::Unit::TestCase
   def setup
-    EventMachine::MockHttpRequest.reset_counts!
-    EventMachine::MockHttpRequest.reset_registry!
-  end
-  
-  def run_in_em_loop
-    EM.run {
-      yield
-    }
+    WebMock.reset!
   end
 end
 
-module Happening
-  module S3
-    class Request
-      def http_class
-        EventMachine::MockHttpRequest
-      end
-    end
-  end
-end
 
 def fake_response(data)
   <<-HEREDOC
@@ -87,8 +71,3 @@ Connection: close
 HEREDOC
 end
 
-module EventMachine
-  class MockHttpRequest
-    @@pass_through_requests = false
-  end
-end
