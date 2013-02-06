@@ -141,7 +141,7 @@ class ItemTest < Test::Unit::TestCase
 
         @item = Happening::S3::Item.new('bucket', 'the-key')
         EM.run do
-          @item.get(:on_error => Proc.new { }) #ignore error
+          @item.get(:on_error => Proc.new {}) #ignore error
 
           EM.add_timer(0.1) {
             assert_requested :get, "https://bucket.s3.amazonaws.com:443/the-key", :times => 5
@@ -238,7 +238,7 @@ class ItemTest < Test::Unit::TestCase
 
         @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
         EM.run do
-          @item.delete(:on_error => Proc.new { }) #ignore error
+          @item.delete(:on_error => Proc.new {}) #ignore error
 
           EM.add_timer(1) {
             headers = {
@@ -403,7 +403,7 @@ class ItemTest < Test::Unit::TestCase
 
         @item = Happening::S3::Item.new('bucket', 'the-key', :aws_access_key_id => 'abc', :aws_secret_access_key => '123')
         EM.run do
-          @item.put('content', :on_error => Proc.new { })
+          @item.put('content', :on_error => Proc.new {})
 
           EM.add_timer(0.1) {
             headers = {
