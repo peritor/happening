@@ -29,7 +29,6 @@ Gem::Specification.new do |s|
     "lib/happening/log.rb",
     "lib/happening/s3.rb",
     "lib/happening/s3/item.rb",
-    "lib/happening/s3/item_metadata.rb",
     "lib/happening/s3/object.rb",
     "lib/happening/s3/request.rb",
     "lib/happening/utils.rb",

@@ -78,6 +78,25 @@ class BucketTest < Test::Unit::TestCase
       end
     end
 
+    context "when getting empty results" do
+      should "return empty array" do
+        stub_request(:get, 'https://bucket.s3.amazonaws.com:443').to_return(bucket_list(EMPTY_BUCKET_LIST_BODY))
+
+        data       = nil
+        on_success = Proc.new { |http| data = http.response }
+        @bucket    = Happening::S3::Bucket.new('bucket')
+        EM.run do
+          @bucket.get(:on_success => on_success)
+
+          EM.add_timer(0.1) {
+            assert_requested :get, "https://bucket.s3.amazonaws.com:443/", :times => 1
+            assert_equal [], data
+            EM.stop
+          }
+        end
+      end
+    end
+
     context "when getting bucket contents" do
 
       should "call the on success callback" do

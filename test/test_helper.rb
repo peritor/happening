@@ -76,7 +76,18 @@ BUCKET_LIST_BODY = <<-HEREDOC.strip
 </ListBucketResult>
 HEREDOC
 
-def bucket_list
+EMPTY_BUCKET_LIST_BODY = <<-HEREDOC.strip
+<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+    <Name>bucket</Name>
+    <Prefix/>
+    <Marker/>
+    <MaxKeys>1000</MaxKeys>
+    <IsTruncated>false</IsTruncated>
+</ListBucketResult>
+HEREDOC
+
+def bucket_list(body=BUCKET_LIST_BODY)
   <<-HEREDOC
 HTTP/1.0 200 OK
 Date: Mon, 16 Nov 2009 20:39:15 GMT
@@ -91,7 +102,7 @@ X-Cache: MISS from .
 Via: 1.0 .:80 (squid)
 Connection: close
 
-#{BUCKET_LIST_BODY}
+#{body}
 HEREDOC
 end
 
